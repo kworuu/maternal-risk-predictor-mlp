@@ -64,6 +64,7 @@
     </Compile>
     <Compile Include="HiddenN.cs" />
     <Compile Include="InputN.cs" />
+    <Compile Include="MaternalData.cs" />
     <Compile Include="OuputN.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
