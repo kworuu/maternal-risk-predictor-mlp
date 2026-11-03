@@ -37,9 +37,9 @@ namespace MaternalRiskPredictor
     }
 
   
-    /// Describes the UCI Maternal Health Risk dataset and loads it from CSV.
-    /// Source: Ahmed, M. (2020). Maternal Health Risk [Dataset]. UCI Machine Learning Repository.
-    /// https://doi.org/10.24432/C5DP5D (CC BY 4.0)
+    // Describes the UCI Maternal Health Risk dataset and loads it from CSV.
+    // Source: Ahmed, M. (2020). Maternal Health Risk [Dataset]. UCI Machine Learning Repository.
+    // https://doi.org/10.24432/C5DP5D (CC BY 4.0)
 
     public static class MaternalData
     {
@@ -143,10 +143,10 @@ namespace MaternalRiskPredictor
             return p.Features[HeartRateIndex] < MinPossibleHeartRate;
         }
 
-        /// <summary>
-        /// Number of distinct sets of 6 vital signs that appear with MORE THAN ONE risk label.
-        /// These contradictions cannot be fixed by cleaning; they limit the possible accuracy.
-        /// </summary>
+   
+        // Number of distinct sets of 6 vital signs that appear with MORE THAN ONE risk label.
+        // These contradictions cannot be fixed by cleaning; they limit the possible accuracy.
+      
         public static int CountContradictions(List<Patient> data)
         {
             Dictionary<string, int> firstLabel = new Dictionary<string, int>();
