@@ -9,13 +9,28 @@ namespace MaternalRiskPredictor
     /// <summary>
     /// Data part of the main window (owner: UI + preprocessing).
     /// P1: load the CSV and show it in the Data tab with problem rows flagged.
-    /// P2: clean, split and scale.   P3: Cleaned / Scaled views and the hand-off fields.
+    /// P2: clean, split and scale.   P3: Cleaned / Scaled views.
     /// </summary>
     public partial class Form1
     {
         // ---- data ----
-        private List<Patient> rawData;     // every row exactly as loaded from the file
-        private bool[] rawIsDuplicate;     // true = exact copy of an earlier row
+        private List<Patient> rawData;      // every row exactly as loaded from the file
+        private bool[] rawIsDuplicate;      // true = exact copy of an earlier row
+
+        private List<Patient> trainClean;   // training rows after cleaning, original units
+        private List<Patient> testClean;    // test rows after cleaning, original units
+
+        // ---- HAND-OFF to the model code (Form1.Model.cs reads these, never writes them) ----
+        private List<Patient> trainSet;     // cleaned + scaled to [0, 1]; same order as trainClean
+        private List<Patient> testSet;      // cleaned + scaled with the TRAINING min/max
+        private MinMaxScaler scaler;        // fitted on the training set; used by Classify one patient
+
+        /// <summary>
+        /// Called whenever the data changes (new file loaded, or Clean + Split + Normalize).
+        /// Form1.Model.cs may implement this to throw away a network trained on the old data.
+        /// If it is not implemented, the compiler simply removes the call.
+        /// </summary>
+        partial void OnDataChanged();
 
         private static readonly Color DuplicateBack = Color.FromArgb(236, 236, 236);
         private static readonly Color DuplicateText = Color.Gray;
@@ -25,7 +40,7 @@ namespace MaternalRiskPredictor
         private void WireDataEvents()
         {
             btnLoad.Click += new EventHandler(btnLoad_Click);
-            // P2: btnPrepare.Click
+            btnPrepare.Click += new EventHandler(btnPrepare_Click);
             // P3: rdoRaw / rdoCleaned / rdoScaled .CheckedChanged
         }
 
@@ -56,6 +71,7 @@ namespace MaternalRiskPredictor
 
                     rawData = loaded;
                     rawIsDuplicate = MaternalData.FindDuplicates(rawData);
+                    ClearPreparedData();
 
                     string fileName = Path.GetFileName(dlg.FileName);
                     int[] counts = MaternalData.CountPerClass(rawData);
@@ -68,11 +84,6 @@ namespace MaternalRiskPredictor
                     Log(string.Format("Class counts: Low {0}, Mid {1}, High {2}", counts[0], counts[1], counts[2]));
                     LogDataCheck();
                     Log("");
-
-                    // a new file invalidates any earlier cleaning
-                    rdoRaw.Checked = true;
-                    rdoCleaned.Enabled = false;
-                    rdoScaled.Enabled = false;
 
                     ShowRawView();
                     tabMain.SelectedTab = tabData;
@@ -150,6 +161,102 @@ namespace MaternalRiskPredictor
                     dgvData.Rows[row].Cells[MaternalData.HeartRateIndex + 1].Style.BackColor = ImpossibleBack;
             }
             dgvData.ResumeLayout();
+        }
+
+        // =====================================================================
+        // P2: Clean + Split + Normalize
+        // =====================================================================
+
+        private void btnPrepare_Click(object sender, EventArgs e)
+        {
+            if (rawData == null)
+            {
+                Warn("Load the CSV file first.");
+                return;
+            }
+
+            Log("Clean + Split + Normalize:");
+            List<Patient> data = rawData;
+
+            // 1. Duplicates: removed BEFORE splitting, so no patient is in both sets
+            if (chkRemoveDuplicates.Checked)
+            {
+                int removed;
+                data = Preprocessing.RemoveDuplicates(data, out removed);
+                Log(string.Format("  Removed {0} duplicate rows (exact copies of an earlier row) -> {1} rows",
+                    removed, data.Count));
+            }
+            else
+            {
+                Log("  Duplicate removal OFF: duplicates kept (copies can land in both training and test sets)");
+            }
+
+            // 2. Impossible values
+            if (chkRemoveImpossible.Checked)
+            {
+                int removed;
+                data = Preprocessing.RemoveImpossible(data, out removed);
+                Log(string.Format("  Removed {0} row(s) with impossible heart rate (< {1} bpm) -> {2} rows",
+                    removed, MaternalData.MinPossibleHeartRate, data.Count));
+            }
+            else
+            {
+                Log("  Impossible-value removal OFF: rows with heart rate < 40 kept");
+            }
+
+            int[] counts = MaternalData.CountPerClass(data);
+            Log(string.Format("  Class counts after cleaning: Low {0}, Mid {1}, High {2}", counts[0], counts[1], counts[2]));
+            Log(string.Format("  Note: {0} sets of identical vitals still have different risk labels (kept; cannot be resolved)",
+                MaternalData.CountContradictions(data)));
+
+            // 3. Split
+            double trainFraction = (double)numTrainPct.Value / 100.0;
+            int seed = (int)numSeed.Value;
+            Preprocessing.Split(data, trainFraction, seed, chkStratified.Checked, out trainClean, out testClean);
+
+            int[] trainCounts = MaternalData.CountPerClass(trainClean);
+            int[] testCounts = MaternalData.CountPerClass(testClean);
+            Log(string.Format("  Split ({0}, {1}/{2}, seed {3}): {4} training rows, {5} test rows",
+                chkStratified.Checked ? "stratified" : "random", (int)numTrainPct.Value, 100 - (int)numTrainPct.Value,
+                seed, trainClean.Count, testClean.Count));
+            Log(string.Format("    Train: {0} / {1} / {2}    Test: {3} / {4} / {5}   (low / mid / high)",
+                trainCounts[0], trainCounts[1], trainCounts[2], testCounts[0], testCounts[1], testCounts[2]));
+            Log(string.Format("  Test rows that are exact copies of a training row: {0}",
+                Preprocessing.CountLeakedRows(trainClean, testClean)));
+
+            // 4. Min-max scaling, fitted on the training set only
+            scaler = new MinMaxScaler();
+            scaler.Fit(trainClean);
+            trainSet = scaler.Transform(trainClean);
+            testSet = scaler.Transform(testClean);
+
+            Log("  Min-max scaling to [0, 1], fitted on the training set:");
+            for (int f = 0; f < MaternalData.NumFeatures; f++)
+            {
+                Log(string.Format("    {0,-12} min {1,6:0.##}   max {2,6:0.##}",
+                    MaternalData.FeatureNames[f], scaler.Min[f], scaler.Max[f]));
+            }
+            Log("  Labels one-hot encoded for the network: Low = 1 0 0, Mid = 0 1 0, High = 0 0 1");
+            Log("");
+
+            OnDataChanged(); // lets the model code discard a network trained on older data
+            tabMain.SelectedTab = tabLog;
+            SetStatus(string.Format("Data ready: {0} training / {1} test rows. Next: Create NN.",
+                trainSet.Count, testSet.Count));
+        }
+
+        /// <summary>Forgets any earlier split (used when a new file is loaded).</summary>
+        private void ClearPreparedData()
+        {
+            trainClean = null;
+            testClean = null;
+            trainSet = null;
+            testSet = null;
+            scaler = null;
+            rdoRaw.Checked = true;
+            rdoCleaned.Enabled = false;
+            rdoScaled.Enabled = false;
+            OnDataChanged();
         }
     }
 }
