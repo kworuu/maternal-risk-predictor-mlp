@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
+using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace MaternalRiskPredictor
 {
@@ -33,7 +38,10 @@ namespace MaternalRiskPredictor
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosingModel);
             btnStop.Enabled = false;
 
-            // L3: btnExport
+            // L3: loss chart + CSV export
+            SetupLossChart();
+            btnExport.Click += new EventHandler(btnExport_Click);
+
             // L4: btnEvaluate
             // L5: btnPredict
             // L6: btnRunTuning, bgwTuning events
@@ -49,6 +57,7 @@ namespace MaternalRiskPredictor
             {
                 trainer = null;
                 trainingHistory.Clear();
+                RefreshLossChart();
                 Log("Data changed: the old network was discarded. Click Create NN again.");
             }
         }
@@ -72,6 +81,7 @@ namespace MaternalRiskPredictor
             trainingHistory.Clear();
             TrainingRecord start = MakeRecord();
             trainingHistory.Add(start);
+            RefreshLossChart();
 
             Log(string.Format("Created a {0}-{1}-{2} network with random weights.",
                 MaternalData.NumFeatures, hidden, MaternalData.NumClasses));
@@ -164,6 +174,7 @@ namespace MaternalRiskPredictor
             if (r != null)
             {
                 trainingHistory.Add(r);
+                AddChartPoint(r);
                 Log(FormatRecord(r));
                 SetStatus(string.Format("Training... epoch {0}", r.Epoch));
             }
@@ -188,6 +199,7 @@ namespace MaternalRiskPredictor
             {
                 last = MakeRecord();
                 trainingHistory.Add(last);
+                AddChartPoint(last);
                 Log(FormatRecord(last));
             }
 
@@ -199,6 +211,7 @@ namespace MaternalRiskPredictor
             Log(string.Format("  Final: train MSE {0:F5}, test MSE {1:F5}, train acc {2:P1}, test acc {3:P1}",
                 last.TrainMse, last.TestMse, last.TrainAccuracy, last.TestAccuracy));
             Log("  Click Train NN again to continue from here, or Create NN to start over.");
+            Log("  The Loss Curve tab shows the chart; Export Log saves training_log.csv.");
             Log("");
             SetStatus(string.Format("Trained {0} epochs. Test accuracy {1:P1}.",
                 trainer.EpochsTrained, last.TestAccuracy));
@@ -208,6 +221,118 @@ namespace MaternalRiskPredictor
         private void Form1_FormClosingModel(object sender, FormClosingEventArgs e)
         {
             if (bgwTrain.IsBusy) bgwTrain.CancelAsync();
+        }
+
+        // =====================================================================
+        // L3: Loss chart + export training_log.csv
+        // =====================================================================
+
+        private const string TrainSeries = "Train MSE";
+        private const string TestSeries = "Test MSE";
+
+        /// <summary>
+        /// Builds the chart in code (the Designer's default Series1/ChartArea1 are removed):
+        /// one area, x = epoch, y = MSE, two lines (train in blue, test in orange).
+        /// </summary>
+        private void SetupLossChart()
+        {
+            chartLoss.Series.Clear();
+            chartLoss.ChartAreas.Clear();
+            chartLoss.Legends.Clear();
+            chartLoss.Titles.Clear();
+
+            ChartArea area = new ChartArea("Loss");
+            area.AxisX.Title = "Epoch";
+            area.AxisY.Title = "Mean squared error (MSE)";
+            area.AxisX.Minimum = 0;
+            area.AxisY.Minimum = 0;
+            area.AxisY.LabelStyle.Format = "0.000";
+            area.AxisX.MajorGrid.LineColor = Color.Gainsboro;
+            area.AxisY.MajorGrid.LineColor = Color.Gainsboro;
+            chartLoss.ChartAreas.Add(area);
+
+            chartLoss.Titles.Add("Loss per epoch (lower is better)");
+            Legend legend = new Legend("Legend");
+            legend.Docking = Docking.Top;
+            chartLoss.Legends.Add(legend);
+
+            chartLoss.Series.Add(MakeSeries(TrainSeries, Color.FromArgb(31, 119, 180)));
+            chartLoss.Series.Add(MakeSeries(TestSeries, Color.FromArgb(255, 127, 14)));
+        }
+
+        private static Series MakeSeries(string name, Color color)
+        {
+            Series s = new Series(name);
+            s.ChartType = SeriesChartType.Line;
+            s.ChartArea = "Loss";
+            s.Legend = "Legend";
+            s.BorderWidth = 2;
+            s.Color = color;
+            s.MarkerStyle = MarkerStyle.Circle;
+            s.MarkerSize = 4;
+            return s;
+        }
+
+        /// <summary>Redraws every point from trainingHistory (after Create NN or a data change).</summary>
+        private void RefreshLossChart()
+        {
+            chartLoss.Series[TrainSeries].Points.Clear();
+            chartLoss.Series[TestSeries].Points.Clear();
+            foreach (TrainingRecord r in trainingHistory) AddChartPoint(r);
+        }
+
+        /// <summary>Adds one record to both lines (called live while training).</summary>
+        private void AddChartPoint(TrainingRecord r)
+        {
+            chartLoss.Series[TrainSeries].Points.AddXY(r.Epoch, r.TrainMse);
+            chartLoss.Series[TestSeries].Points.AddXY(r.Epoch, r.TestMse);
+        }
+
+        /// <summary>
+        /// Saves trainingHistory as CSV, one row per logged epoch. Numbers use a dot as the
+        /// decimal point (InvariantCulture) so Excel, Python and the professor all read it the same.
+        /// </summary>
+        private void btnExport_Click(object sender, EventArgs e)
+        {
+            if (trainer == null || trainingHistory.Count <= 1)
+            {
+                Warn("Create and train the network first: there is no training log to export yet.");
+                return;
+            }
+
+            using (SaveFileDialog dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Export training log";
+                dlg.Filter = "CSV files (*.csv)|*.csv";
+                dlg.FileName = "training_log.csv";
+                dlg.InitialDirectory = Application.StartupPath;
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+
+                CultureInfo inv = CultureInfo.InvariantCulture;
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("epoch,train_mse,test_mse,train_accuracy,test_accuracy");
+                foreach (TrainingRecord r in trainingHistory)
+                {
+                    sb.AppendLine(string.Format(inv, "{0},{1:F6},{2:F6},{3:F4},{4:F4}",
+                        r.Epoch, r.TrainMse, r.TestMse, r.TrainAccuracy, r.TestAccuracy));
+                }
+
+                try
+                {
+                    File.WriteAllText(dlg.FileName, sb.ToString());
+                }
+                catch (Exception ex)
+                {
+                    Warn("Could not save the file: " + ex.Message);
+                    return;
+                }
+
+                Log(string.Format("Exported {0} rows to {1}", trainingHistory.Count, dlg.FileName));
+                Log(string.Format("  Network {0}-{1}-{2}, {3} epochs trained.",
+                    MaternalData.NumFeatures, trainer.HiddenNodes, MaternalData.NumClasses, trainer.EpochsTrained));
+                Log("");
+                SetStatus("Training log exported.");
+            }
         }
 
         // ---- helpers ----
