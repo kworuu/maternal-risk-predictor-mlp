@@ -9,7 +9,8 @@ namespace MaternalRiskPredictor
     /// <summary>
     /// Data part of the main window (owner: UI + preprocessing).
     /// P1: load the CSV and show it in the Data tab with problem rows flagged.
-    /// P2: clean, split and scale.   P3: Cleaned / Scaled views.
+    /// P2: clean, split and scale.
+    /// P3: Raw / Cleaned / Scaled views of the Data tab.
     /// </summary>
     public partial class Form1
     {
@@ -35,13 +36,16 @@ namespace MaternalRiskPredictor
         private static readonly Color DuplicateBack = Color.FromArgb(236, 236, 236);
         private static readonly Color DuplicateText = Color.Gray;
         private static readonly Color ImpossibleBack = Color.FromArgb(250, 205, 205);
+        private static readonly Color TestRowBack = Color.FromArgb(225, 238, 252);
 
         /// <summary>Connects the data buttons. Called once from the constructor.</summary>
         private void WireDataEvents()
         {
             btnLoad.Click += new EventHandler(btnLoad_Click);
             btnPrepare.Click += new EventHandler(btnPrepare_Click);
-            // P3: rdoRaw / rdoCleaned / rdoScaled .CheckedChanged
+            rdoRaw.CheckedChanged += new EventHandler(rdoView_CheckedChanged);
+            rdoCleaned.CheckedChanged += new EventHandler(rdoView_CheckedChanged);
+            rdoScaled.CheckedChanged += new EventHandler(rdoView_CheckedChanged);
         }
 
         // =====================================================================
@@ -240,6 +244,15 @@ namespace MaternalRiskPredictor
             Log("");
 
             OnDataChanged(); // lets the model code discard a network trained on older data
+
+            // P3: the Cleaned and Scaled views are now available; show Cleaned
+            rdoCleaned.Enabled = true;
+            rdoScaled.Enabled = true;
+            if (rdoCleaned.Checked)
+                ShowSplitView(false);    // already selected: refresh it with the new split
+            else
+                rdoCleaned.Checked = true; // triggers rdoView_CheckedChanged
+
             tabMain.SelectedTab = tabLog;
             SetStatus(string.Format("Data ready: {0} training / {1} test rows. Next: Create NN.",
                 trainSet.Count, testSet.Count));
@@ -256,7 +269,83 @@ namespace MaternalRiskPredictor
             rdoRaw.Checked = true;
             rdoCleaned.Enabled = false;
             rdoScaled.Enabled = false;
+            lblDataLegend.Text = "Grey = duplicate row    Red = impossible value";
             OnDataChanged();
+        }
+
+        // =====================================================================
+        // P3: Data tab views
+        // =====================================================================
+
+        /// <summary>One handler for all three view buttons.</summary>
+        private void rdoView_CheckedChanged(object sender, EventArgs e)
+        {
+            RadioButton button = (RadioButton)sender;
+            if (!button.Checked || rawData == null)
+                return; // the button being UN-checked also raises this event; ignore it
+
+            if (button == rdoRaw)
+            {
+                lblDataLegend.Text = "Grey = duplicate row    Red = impossible value";
+                ShowRawView();
+            }
+            else if (button == rdoCleaned && trainClean != null)
+            {
+                ShowSplitView(false);
+            }
+            else if (button == rdoScaled && trainSet != null)
+            {
+                ShowSplitView(true);
+            }
+        }
+
+        /// <summary>
+        /// Cleaned view (original units) or Scaled view (what the network receives).
+        /// Training rows first, then test rows shaded blue. Rows keep their original
+        /// file row number, so they can be compared with the Raw view.
+        /// </summary>
+        private void ShowSplitView(bool scaled)
+        {
+            List<Patient> train = scaled ? trainSet : trainClean;
+            List<Patient> test = scaled ? testSet : testClean;
+
+            lblDataLegend.Text = scaled
+                ? "Scaled with the TRAINING min/max. Blue = test row (may fall slightly outside [0, 1])"
+                : string.Format("{0} rows after cleaning. Blue = test row", train.Count + test.Count);
+
+            dgvData.SuspendLayout();
+            dgvData.Rows.Clear();
+            dgvData.Columns.Clear();
+
+            dgvData.Columns.Add("colRow", "#");
+            dgvData.Columns.Add("colSet", "Set");
+            for (int c = 0; c < MaternalData.NumFeatures; c++)
+                dgvData.Columns.Add("colF" + c, MaternalData.ShortNames[c]);
+            dgvData.Columns.Add("colRisk", "Risk level");
+
+            AddSplitRows(train, "Train", scaled);
+            AddSplitRows(test, "Test", scaled);
+            dgvData.ResumeLayout();
+        }
+
+        private void AddSplitRows(List<Patient> rows, string setName, bool scaled)
+        {
+            foreach (Patient p in rows)
+            {
+                object[] cells = new object[MaternalData.NumFeatures + 3];
+                cells[0] = p.RowNumber;
+                cells[1] = setName;
+                for (int c = 0; c < MaternalData.NumFeatures; c++)
+                {
+                    if (scaled) cells[c + 2] = p.Features[c].ToString("0.000");
+                    else cells[c + 2] = p.Features[c];
+                }
+                cells[MaternalData.NumFeatures + 2] = MaternalData.ClassNames[p.Label];
+
+                int row = dgvData.Rows.Add(cells);
+                if (setName == "Test")
+                    dgvData.Rows[row].DefaultCellStyle.BackColor = TestRowBack;
+            }
         }
     }
 }
