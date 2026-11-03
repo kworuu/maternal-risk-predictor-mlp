@@ -46,7 +46,10 @@ namespace MaternalRiskPredictor
             btnEvaluate.Click += new EventHandler(btnEvaluate_Click);
             ClearEvaluation();
 
-            // L5: btnPredict
+            // L5: classify one patient
+            btnPredict.Click += new EventHandler(btnPredict_Click);
+            ClearPrediction();
+
             // L6: btnRunTuning, bgwTuning events
         }
 
@@ -62,6 +65,7 @@ namespace MaternalRiskPredictor
                 trainingHistory.Clear();
                 RefreshLossChart();
                 ClearEvaluation();
+                ClearPrediction();
                 Log("Data changed: the old network was discarded. Click Create NN again.");
             }
         }
@@ -87,6 +91,7 @@ namespace MaternalRiskPredictor
             trainingHistory.Add(start);
             RefreshLossChart();
             ClearEvaluation();
+            ClearPrediction();
 
             Log(string.Format("Created a {0}-{1}-{2} network with random weights.",
                 MaternalData.NumFeatures, hidden, MaternalData.NumClasses));
@@ -482,6 +487,82 @@ namespace MaternalRiskPredictor
         {
             int i = grid.Columns.Add(name, header);
             grid.Columns[i].SortMode = DataGridViewColumnSortMode.NotSortable;
+        }
+
+        // =====================================================================
+        // L5: Classify one patient
+        // =====================================================================
+
+        private static readonly Color[] RiskColors =
+        {
+            Color.FromArgb(30, 130, 60),    // Low risk: green
+            Color.FromArgb(200, 120, 0),    // Mid risk: orange
+            Color.FromArgb(200, 30, 30)     // High risk: red
+        };
+
+        private void btnPredict_Click(object sender, EventArgs e)
+        {
+            if (trainer == null || scaler == null)
+            {
+                Warn("Prepare the data, then create and train the network first.");
+                return;
+            }
+            if (trainer.EpochsTrained == 0)
+                Log("Note: the network is untrained, so this prediction is a random guess.");
+
+            // 1. Raw vitals, in the SAME order as the CSV columns (MaternalData.FeatureNames).
+            double[] raw =
+            {
+                (double)numAge.Value,
+                (double)numSystolic.Value,
+                (double)numDiastolic.Value,
+                (double)numBloodSugar.Value,
+                (double)numBodyTemp.Value,
+                (double)numHeartRate.Value
+            };
+
+            // 2. Scale with the min/max learned from the TRAINING set (never refit on new input).
+            double[] scaled = scaler.Transform(raw);
+
+            // 3. Forward pass, then ArgMax picks the strongest of the 3 outputs.
+            double[] outputs = trainer.Predict(scaled);
+            int predicted = NetworkTrainer.ArgMax(outputs);
+
+            lblPrediction.Text = string.Format("{0}  (output {1:F2})",
+                MaternalData.ClassNames[predicted], outputs[predicted]);
+            lblPrediction.ForeColor = RiskColors[predicted];
+
+            LogPrediction(raw, scaled, outputs, predicted);
+            SetStatus("Predicted: " + MaternalData.ClassNames[predicted] + ".");
+        }
+
+        private void LogPrediction(double[] raw, double[] scaled, double[] outputs, int predicted)
+        {
+            Log("Prediction for one patient:");
+            List<string> outside = new List<string>();
+            for (int i = 0; i < MaternalData.NumFeatures; i++)
+            {
+                Log(string.Format("  {0,-12} raw {1,7:0.##}  ->  scaled {2:0.000}",
+                    MaternalData.FeatureNames[i], raw[i], scaled[i]));
+                if (scaled[i] < 0 || scaled[i] > 1) outside.Add(MaternalData.FeatureNames[i]);
+            }
+            Log(string.Format("  Outputs: Low {0:F3}, Mid {1:F3}, High {2:F3}  ->  {3}",
+                outputs[0], outputs[1], outputs[2], MaternalData.ClassNames[predicted]));
+
+            // Scaled values outside 0..1 mean the input is outside what the network saw in training.
+            if (outside.Count > 0)
+                Log("  Warning: outside the training range for " + string.Join(", ", outside) +
+                    ". The network never saw values like these, so treat this answer with caution.");
+            if (raw[MaternalData.HeartRateIndex] < MaternalData.MinPossibleHeartRate)
+                Log("  Warning: a heart rate below 40 bpm is the kind of value removed as impossible during cleaning.");
+            Log("  (This is a class project, not a medical tool.)");
+            Log("");
+        }
+
+        private void ClearPrediction()
+        {
+            lblPrediction.Text = "Enter the vitals and click Predict.";
+            lblPrediction.ForeColor = SystemColors.ControlText;
         }
 
         // ---- helpers ----
