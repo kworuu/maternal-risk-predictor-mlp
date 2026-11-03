@@ -5,9 +5,9 @@ using System.IO;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// One patient record: 6 vital signs and the risk level (0 = low, 1 = mid, 2 = high).
-    /// </summary>
+
+    // One patient record: 6 vital signs and the risk level (0 = low, 1 = mid, 2 = high).
+
     public class Patient
     {
         public double[] Features; // Age, SystolicBP, DiastolicBP, BS, BodyTemp, HeartRate
@@ -21,16 +21,12 @@ namespace MaternalRiskPredictor
             RowNumber = rowNumber;
         }
 
-        /// <summary>
-        /// Text that is identical for two rows exactly when all 6 values AND the label match.
-        /// Used to find duplicate rows.
-        /// </summary>
+        // Two rows get the same key only if all 6 values and the label match.
         public string RowKey()
         {
             return FeatureKey() + "|" + Label;
         }
 
-        /// <summary>The 6 values only (no label). Used to find contradicting labels.</summary>
         public string FeatureKey()
         {
             string[] parts = new string[Features.Length];
@@ -40,11 +36,11 @@ namespace MaternalRiskPredictor
         }
     }
 
-    /// <summary>
+  
     /// Describes the UCI Maternal Health Risk dataset and loads it from CSV.
     /// Source: Ahmed, M. (2020). Maternal Health Risk [Dataset]. UCI Machine Learning Repository.
     /// https://doi.org/10.24432/C5DP5D (CC BY 4.0)
-    /// </summary>
+
     public static class MaternalData
     {
         public const int NumFeatures = 6;
@@ -62,17 +58,15 @@ namespace MaternalRiskPredictor
         public const int HeartRateIndex = 5;
         public const double MinPossibleHeartRate = 40.0; // below this is not a living resting heart rate
 
-        /// <summary>
-        /// Reads the CSV: a header row, then 6 numbers and a text label per line
-        /// ("low risk", "mid risk" or "high risk"). Lines that cannot be read are
-        /// skipped and counted; the header line is not counted as skipped.
-        /// </summary>
+        // Expects a header row, then 6 numbers and a label ("low risk", "mid risk", "high risk")
+        // per line. Lines that can't be parsed are skipped and counted.
+
         public static List<Patient> LoadCsv(string path, out int skippedRows)
         {
             List<Patient> patients = new List<Patient>();
             skippedRows = 0;
 
-            // ReadAllLines also removes the invisible byte-order mark at the start of the file
+           
             string[] lines = File.ReadAllLines(path);
             int rowNumber = 0;
 
@@ -105,7 +99,7 @@ namespace MaternalRiskPredictor
             return patients;
         }
 
-        /// <summary>"low risk" -> 0, "mid risk" -> 1, "high risk" -> 2, anything else -> -1.</summary>
+        // low risk" -> 0, "mid risk" -> 1, "high risk" -> 2, anything else -> -1.
         public static int ParseLabel(string text)
         {
             string s = text.Trim().Trim('"').ToLowerInvariant();
@@ -115,7 +109,7 @@ namespace MaternalRiskPredictor
             return -1;
         }
 
-        /// <summary>Returns { low count, mid count, high count }.</summary>
+        // Returns { low count, mid count, high count }.
         public static int[] CountPerClass(List<Patient> data)
         {
             int[] counts = new int[NumClasses];
@@ -124,10 +118,10 @@ namespace MaternalRiskPredictor
             return counts;
         }
 
-        /// <summary>
-        /// For each row: true if it is an exact copy (all values and label) of an EARLIER row.
-        /// The first occurrence is kept; later copies are the duplicates.
-        /// </summary>
+     
+        // For each row: true if it is an exact copy (all values and label) of an EARLIER row.
+        // The first occurrence is kept; later copies are the duplicates.
+       
         public static bool[] FindDuplicates(List<Patient> data)
         {
             bool[] isDuplicate = new bool[data.Count];
@@ -143,7 +137,7 @@ namespace MaternalRiskPredictor
             return isDuplicate;
         }
 
-        /// <summary>True if the record holds a value that cannot be real (heart rate below 40 bpm).</summary>
+        // A resting heart rate under 40 bpm isn't realistic, so we treat it as a data entry error.
         public static bool IsImpossible(Patient p)
         {
             return p.Features[HeartRateIndex] < MinPossibleHeartRate;

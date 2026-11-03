@@ -6,31 +6,24 @@ using System.Windows.Forms;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// Data part of the main window (owner: UI + preprocessing).
-    /// P1: load the CSV and show it in the Data tab with problem rows flagged.
-    /// P2: clean, split and scale.
-    /// P3: Raw / Cleaned / Scaled views of the Data tab.
-    /// </summary>
+    // Loading, cleaning, splitting and scaling the dataset, plus the Data tab.
+
     public partial class Form1
     {
-        // ---- data ----
         private List<Patient> rawData;      // every row exactly as loaded from the file
         private bool[] rawIsDuplicate;      // true = exact copy of an earlier row
 
-        private List<Patient> trainClean;   // training rows after cleaning, original units
-        private List<Patient> testClean;    // test rows after cleaning, original units
+        private List<Patient> trainClean;   
+        private List<Patient> testClean;
 
-        // ---- HAND-OFF to the model code (Form1.Model.cs reads these, never writes them) ----
-        private List<Patient> trainSet;     // cleaned + scaled to [0, 1]; same order as trainClean
-        private List<Patient> testSet;      // cleaned + scaled with the TRAINING min/max
-        private MinMaxScaler scaler;        // fitted on the training set; used by Classify one patient
+        // What the network uses. Form1.model.cs reads these but never changes them.
 
-        /// <summary>
-        /// Called whenever the data changes (new file loaded, or Clean + Split + Normalize).
-        /// Form1.Model.cs may implement this to throw away a network trained on the old data.
-        /// If it is not implemented, the compiler simply removes the call.
-        /// </summary>
+        private List<Patient> trainSet;     
+        private List<Patient> testSet;      
+        private MinMaxScaler scaler;        // fitted on the training set only
+
+
+        // Implemented in Form1.model.cs to discard a network trained on the old data.
         partial void OnDataChanged();
 
         private static readonly Color DuplicateBack = Color.FromArgb(236, 236, 236);
@@ -38,7 +31,7 @@ namespace MaternalRiskPredictor
         private static readonly Color ImpossibleBack = Color.FromArgb(250, 205, 205);
         private static readonly Color TestRowBack = Color.FromArgb(225, 238, 252);
 
-        /// <summary>Connects the data buttons. Called once from the constructor.</summary>
+
         private void WireDataEvents()
         {
             btnLoad.Click += new EventHandler(btnLoad_Click);
@@ -48,10 +41,7 @@ namespace MaternalRiskPredictor
             rdoScaled.CheckedChanged += new EventHandler(rdoView_CheckedChanged);
         }
 
-        // =====================================================================
-        // P1: Load
-        // =====================================================================
-
+        // Load the CSV file, parse it into a list of Patient objects, and report any problems.
         private void btnLoad_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog dlg = new OpenFileDialog())
@@ -100,7 +90,6 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>Reports the data-quality problems found in the raw file.</summary>
         private void LogDataCheck()
         {
             int duplicates = 0;
@@ -122,10 +111,10 @@ namespace MaternalRiskPredictor
                 MaternalData.CountContradictions(rawData)));
         }
 
-        /// <summary>
-        /// Data tab, Raw view: every row as loaded. Duplicate rows are grey and
-        /// impossible values are red, so the reader sees what cleaning will remove.
-        /// </summary>
+ 
+        // Data tab, Raw view: every row as loaded. Duplicate rows are grey and
+        // impossible values are red, so the reader sees what cleaning will remove.
+        
         private void ShowRawView()
         {
             dgvData.SuspendLayout();
@@ -167,10 +156,9 @@ namespace MaternalRiskPredictor
             dgvData.ResumeLayout();
         }
 
-        // =====================================================================
-        // P2: Clean + Split + Normalize
-        // =====================================================================
-
+       
+        // Clean + Split + Normalize
+ 
         private void btnPrepare_Click(object sender, EventArgs e)
         {
             if (rawData == null)
@@ -245,7 +233,7 @@ namespace MaternalRiskPredictor
 
             OnDataChanged(); // lets the model code discard a network trained on older data
 
-            // P3: the Cleaned and Scaled views are now available; show Cleaned
+            // the Cleaned and Scaled views are now available; show Cleaned
             rdoCleaned.Enabled = true;
             rdoScaled.Enabled = true;
             if (rdoCleaned.Checked)
@@ -258,7 +246,7 @@ namespace MaternalRiskPredictor
                 trainSet.Count, testSet.Count));
         }
 
-        /// <summary>Forgets any earlier split (used when a new file is loaded).</summary>
+        // Called when a new file is loaded: the old split no longer applies.
         private void ClearPreparedData()
         {
             trainClean = null;
@@ -273,11 +261,10 @@ namespace MaternalRiskPredictor
             OnDataChanged();
         }
 
-        // =====================================================================
-        // P3: Data tab views
-        // =====================================================================
 
-        /// <summary>One handler for all three view buttons.</summary>
+        // Data tab views
+
+        // One handler for all three view buttons
         private void rdoView_CheckedChanged(object sender, EventArgs e)
         {
             RadioButton button = (RadioButton)sender;
@@ -299,11 +286,11 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>
-        /// Cleaned view (original units) or Scaled view (what the network receives).
-        /// Training rows first, then test rows shaded blue. Rows keep their original
-        /// file row number, so they can be compared with the Raw view.
-        /// </summary>
+       
+        // Cleaned view (original units) or Scaled view (what the network receives).
+        // Training rows first, then test rows shaded blue. Rows keep their original
+        // file row number, so they can be compared with the Raw view.
+      
         private void ShowSplitView(bool scaled)
         {
             List<Patient> train = scaled ? trainSet : trainClean;

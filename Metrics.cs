@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// 3x3 confusion matrix plus the scores computed from it (L4).
-    /// Counts[actual, predicted]: rows = the real class, columns = the network's answer.
-    /// The diagonal (actual == predicted) holds the correct answers.
-    /// </summary>
+   
+    // 3x3 confusion matrix plus the scores computed from it (L4).
+    // Counts[actual, predicted]: rows = the real class, columns = the network's answer.
+    // The diagonal (actual == predicted) holds the correct answers.
+
     public class ConfusionMatrix
     {
         public readonly int[,] Counts;
@@ -20,7 +20,7 @@ namespace MaternalRiskPredictor
             Counts = new int[numClasses, numClasses];
         }
 
-        /// <summary>Runs the network on every row of data and tallies actual vs predicted.</summary>
+        // Runs the network on every row of data and tallies actual vs predicted
         public static ConfusionMatrix Build(NetworkTrainer trainer, List<Patient> data)
         {
             ConfusionMatrix cm = new ConfusionMatrix(MaternalData.NumClasses);
@@ -35,7 +35,7 @@ namespace MaternalRiskPredictor
             Total++;
         }
 
-        /// <summary>How many rows really belong to class k (the row total).</summary>
+        // How many rows really belong to class k (the row total)
         public int Support(int k)
         {
             int sum = 0;
@@ -43,7 +43,7 @@ namespace MaternalRiskPredictor
             return sum;
         }
 
-        /// <summary>How many times the network answered class k (the column total).</summary>
+        // How many times the network answered class k (the column total)
         public int PredictedCount(int k)
         {
             int sum = 0;
@@ -51,7 +51,7 @@ namespace MaternalRiskPredictor
             return sum;
         }
 
-        /// <summary>Correct answers / all answers (sum of the diagonal / total).</summary>
+        // Correct answers / all answers (sum of the diagonal / total)
         public double Accuracy()
         {
             if (Total == 0) return 0;
@@ -67,28 +67,28 @@ namespace MaternalRiskPredictor
             return correct;
         }
 
-        /// <summary>Precision of k: of the rows the network CALLED class k, how many really were k?</summary>
+        // Precision of k: of the rows the network CALLED class k, how many really were k?
         public double Precision(int k)
         {
             int predicted = PredictedCount(k);
             return predicted == 0 ? 0 : (double)Counts[k, k] / predicted;
         }
 
-        /// <summary>Recall of k: of the rows that REALLY are class k, how many did the network find?</summary>
+        // Recall of k: of the rows that REALLY are class k, how many did the network find?
         public double Recall(int k)
         {
             int actual = Support(k);
             return actual == 0 ? 0 : (double)Counts[k, k] / actual;
         }
 
-        /// <summary>F1 of k: harmonic mean of precision and recall (high only if both are high).</summary>
+        // F1 of k: harmonic mean of precision and recall (high only if both are high)
         public double F1(int k)
         {
             double p = Precision(k), r = Recall(k);
             return (p + r) == 0 ? 0 : 2 * p * r / (p + r);
         }
 
-        /// <summary>Macro average: plain mean over the 3 classes, so the small classes count as much as the big one.</summary>
+        // Macro average: plain mean over the 3 classes, so the small classes count as much as the big one
         public double MacroPrecision() { return Mean(Precision); }
         public double MacroRecall() { return Mean(Recall); }
         public double MacroF1() { return Mean(F1); }
@@ -101,13 +101,12 @@ namespace MaternalRiskPredictor
         }
     }
 
-    /// <summary>Helpers that do not need a trained network.</summary>
     public static class Metrics
     {
-        /// <summary>
-        /// Majority-class baseline: a "model" that ignores the vitals and always answers the
-        /// class that is most common in the TRAINING set. The network must beat this to be useful.
-        /// </summary>
+
+        // Majority-class baseline: a "model" that ignores the vitals and always answers the
+        // class that is most common in the TRAINING set. The network must beat this to be useful.
+
         public static double MajorityBaseline(List<Patient> train, List<Patient> test, out int majorityClass)
         {
             int[] counts = MaternalData.CountPerClass(train);

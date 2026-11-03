@@ -10,26 +10,20 @@ using System.Windows.Forms.DataVisualization.Charting;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// Model part of the main window (owner: logic partner).
-    /// L1: Create NN.   L2: Train / Stop.   L3: loss chart + export.   L4: evaluation.
-    /// L5: classify one patient.   L6: tuning.
-    /// Reads trainSet, testSet and scaler from Form1.Data.cs but never changes them.
-    /// </summary>
+    // Creating, training, evaluating and tuning the network.
+    // Uses trainSet, testSet and scaler from Form1.Data.cs without changing them.
     public partial class Form1
     {
-        // ---- network ----
         private NetworkTrainer trainer;   // null until Create NN is clicked
 
-        // ---- training history (one record per logged epoch; L3 draws and exports it) ----
+        // One record per logged epoch; drawn on the loss chart and exported to CSV
         private List<TrainingRecord> trainingHistory = new List<TrainingRecord>();
 
-        /// <summary>Connects the model buttons. Called once from the constructor.</summary>
         private void WireModelEvents()
         {
             btnCreate.Click += new EventHandler(btnCreate_Click);
 
-            // L2: training runs on a background thread so the window stays responsive
+            // training runs on a background thread so the window stays responsive
             btnTrain.Click += new EventHandler(btnTrain_Click);
             btnStop.Click += new EventHandler(btnStop_Click);
             bgwTrain.DoWork += new DoWorkEventHandler(bgwTrain_DoWork);
@@ -38,29 +32,29 @@ namespace MaternalRiskPredictor
             this.FormClosing += new FormClosingEventHandler(Form1_FormClosingModel);
             btnStop.Enabled = false;
 
-            // L3: loss chart + CSV export
+            // loss chart + CSV export
             SetupLossChart();
             btnExport.Click += new EventHandler(btnExport_Click);
 
-            // L4: evaluation on the test set
+            // evaluation on the test set
             btnEvaluate.Click += new EventHandler(btnEvaluate_Click);
             ClearEvaluation();
 
-            // L5: classify one patient
+            // classify one patient
             btnPredict.Click += new EventHandler(btnPredict_Click);
             ClearPrediction();
 
-            // L6: tuning grid search (its own background worker; Stop cancels it too)
+            // tuning grid search (its own background worker; Stop cancels it too)
             btnRunTuning.Click += new EventHandler(btnRunTuning_Click);
             bgwTuning.DoWork += new DoWorkEventHandler(bgwTuning_DoWork);
             bgwTuning.ProgressChanged += new ProgressChangedEventHandler(bgwTuning_ProgressChanged);
             bgwTuning.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgwTuning_RunWorkerCompleted);
         }
 
-        /// <summary>
-        /// Runs whenever the data is reloaded or re-split (called from Form1.Data.cs).
-        /// A network trained on the old split is no longer valid, so it is discarded.
-        /// </summary>
+ 
+        // Runs whenever the data is reloaded or re-split (called from Form1.Data.cs).
+        // A network trained on the old split is no longer valid, so it is discarded.
+        
         partial void OnDataChanged()
         {
             if (trainer != null)
@@ -74,9 +68,8 @@ namespace MaternalRiskPredictor
             }
         }
 
-        // =====================================================================
-        // L1: Create NN
-        // =====================================================================
+
+        // Create NN
 
         private void btnCreate_Click(object sender, EventArgs e)
         {
@@ -106,11 +99,8 @@ namespace MaternalRiskPredictor
             SetStatus("Network created. Next: Train NN.");
         }
 
-        // =====================================================================
-        // L2: Train / Stop
-        // =====================================================================
+        // Train / Stop
 
-        /// <summary>The settings one training run needs, read on the UI thread before it starts.</summary>
         private class TrainJob
         {
             public int Epochs;      // how many MORE epochs to train
@@ -157,7 +147,7 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>BACKGROUND THREAD. Runs the epochs. No UI calls here, only ReportProgress.</summary>
+        // Runs on a background thread: no UI calls here, only ReportProgress.
         private void bgwTrain_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
@@ -185,7 +175,6 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>UI THREAD. Moves the bar and, when a record arrives, logs and stores it.</summary>
         private void bgwTrain_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             progressBar.Value = Math.Min(Math.Max(e.ProgressPercentage, 0), 100);
@@ -200,7 +189,7 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>UI THREAD. Runs once when training finishes, is stopped, or crashes.</summary>
+        // UI THREAD. Runs once when training finishes, is stopped, or crashes.
         private void bgwTrain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             SetBusy(false);
@@ -237,28 +226,23 @@ namespace MaternalRiskPredictor
                 trainer.EpochsTrained, last.TestAccuracy));
         }
 
-        /// <summary>Closing the window mid-training: ask the worker to stop first.</summary>
+
         private void Form1_FormClosingModel(object sender, FormClosingEventArgs e)
         {
             if (bgwTrain.IsBusy) bgwTrain.CancelAsync();
             if (bgwTuning.IsBusy) bgwTuning.CancelAsync();
         }
 
-        // =====================================================================
-        // L3: Loss chart + export training_log.csv
-        // =====================================================================
+        // Loss chart + export training_log.csv
+
 
         private const string TrainSeries = "Train MSE";
         private const string TestSeries = "Test MSE";
 
-        // The loss chart is created in code, not in the Designer, so Form1.Designer.cs
-        // (owned by the UI partner) never has to change. It replaces the old picLoss box.
+        // Built in code rather than in the Designer; it takes the place of picLoss.
         private Chart chartLoss;
 
-        /// <summary>
-        /// Creates the chart, puts it on the Loss curve tab in place of picLoss, and sets it up:
-        /// one area, x = epoch, y = MSE, two lines (train in blue, test in orange).
-        /// </summary>
+
         private void SetupLossChart()
         {
             chartLoss = new Chart();
@@ -301,7 +285,6 @@ namespace MaternalRiskPredictor
             return s;
         }
 
-        /// <summary>Redraws every point from trainingHistory (after Create NN or a data change).</summary>
         private void RefreshLossChart()
         {
             chartLoss.Series[TrainSeries].Points.Clear();
@@ -309,17 +292,16 @@ namespace MaternalRiskPredictor
             foreach (TrainingRecord r in trainingHistory) AddChartPoint(r);
         }
 
-        /// <summary>Adds one record to both lines (called live while training).</summary>
         private void AddChartPoint(TrainingRecord r)
         {
             chartLoss.Series[TrainSeries].Points.AddXY(r.Epoch, r.TrainMse);
             chartLoss.Series[TestSeries].Points.AddXY(r.Epoch, r.TestMse);
         }
 
-        /// <summary>
-        /// Saves trainingHistory as CSV, one row per logged epoch. Numbers use a dot as the
-        /// decimal point (InvariantCulture) so Excel, Python and the professor all read it the same.
-        /// </summary>
+
+        // Saves trainingHistory as CSV, one row per logged epoch. Numbers use a dot as the
+        // decimal point (InvariantCulture) so Excel, Python and the professor all read it the same.
+
         private void btnExport_Click(object sender, EventArgs e)
         {
             if (trainer == null || trainingHistory.Count <= 1)
@@ -363,9 +345,7 @@ namespace MaternalRiskPredictor
             }
         }
 
-        // =====================================================================
-        // L4: Evaluation (confusion matrix, per-class metrics, baseline)
-        // =====================================================================
+        // Evaluation (confusion matrix, per-class metrics, baseline)
 
         private static readonly Color CorrectCell = Color.FromArgb(214, 240, 214);  // diagonal: right answers
         private static readonly Color WrongCell = Color.FromArgb(250, 215, 215);    // off-diagonal, non-zero: mistakes
@@ -399,7 +379,7 @@ namespace MaternalRiskPredictor
                 trainer.EpochsTrained, cm.Accuracy(), cm.MacroF1()));
         }
 
-        /// <summary>Rows = actual class, columns = predicted class, plus totals.</summary>
+        // Rows = actual class, columns = predicted class, plus totals 
         private void ShowConfusion(ConfusionMatrix cm)
         {
             int n = cm.NumClasses;
@@ -437,7 +417,7 @@ namespace MaternalRiskPredictor
             dgvConfusion.ClearSelection();
         }
 
-        /// <summary>Precision, recall, F1 and support per class, then the macro average.</summary>
+        // Precision, recall, F1 and support per class, then the macro average
         private void ShowMetrics(ConfusionMatrix cm)
         {
             dgvMetrics.Columns.Clear();
@@ -462,7 +442,7 @@ namespace MaternalRiskPredictor
             dgvMetrics.ClearSelection();
         }
 
-        /// <summary>The same results as text, so they are also in the log (and in screenshots of it).</summary>
+        // The same results as text, so they are also in the log (and in screenshots of it)
         private void LogEvaluation(ConfusionMatrix cm, double trainAcc, double baseline, int majority)
         {
             Log(string.Format("Evaluation on the TEST set ({0} rows) after {1} epochs:", cm.Total, trainer.EpochsTrained));
@@ -484,7 +464,7 @@ namespace MaternalRiskPredictor
             Log("");
         }
 
-        /// <summary>Empties the Evaluation tab (new network or new data = old results no longer valid).</summary>
+        // Empties the Evaluation tab (new network or new data = old results no longer valid)
         private void ClearEvaluation()
         {
             dgvConfusion.Columns.Clear();
@@ -500,9 +480,7 @@ namespace MaternalRiskPredictor
             grid.Columns[i].SortMode = DataGridViewColumnSortMode.NotSortable;
         }
 
-        // =====================================================================
         // L5: Classify one patient
-        // =====================================================================
 
         private static readonly Color[] RiskColors =
         {
@@ -576,10 +554,8 @@ namespace MaternalRiskPredictor
             lblPrediction.ForeColor = SystemColors.ControlText;
         }
 
-        // =====================================================================
-        // L6: Tuning (grid search over hidden nodes x epochs, repeated runs)
-        // =====================================================================
 
+        // Tuning (grid search over hidden nodes x epochs, repeated runs)
         // Filled by the background thread, read by the UI thread only after it finishes.
         private List<TuningResult> tuningResults = new List<TuningResult>();
 
@@ -631,7 +607,7 @@ namespace MaternalRiskPredictor
             bgwTuning.RunWorkerAsync(job);
         }
 
-        /// <summary>BACKGROUND THREAD. Trains every (hidden, repeat) network and scores it at each listed epoch.</summary>
+        // BACKGROUND THREAD. Trains every (hidden, repeat) network and scores it at each listed epoch
         private void bgwTuning_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
@@ -729,7 +705,7 @@ namespace MaternalRiskPredictor
             SetStatus(e.Cancelled ? "Tuning stopped; partial results shown." : "Tuning finished.");
         }
 
-        /// <summary>Fills dgvTuning and highlights the best row. Returns the best setting.</summary>
+        // Fills dgvTuning and highlights the best row. Returns the best setting
         private TuningResult ShowTuningResults(List<TuningResult> rows)
         {
             dgvTuning.Columns.Clear();
@@ -785,7 +761,7 @@ namespace MaternalRiskPredictor
 
         // ---- helpers ----
 
-        /// <summary>Measures the current network on both sets. Safe on either thread.</summary>
+        // Measures the current network on both sets. Safe on either thread
         private TrainingRecord MakeRecord()
         {
             TrainingRecord r = new TrainingRecord();
@@ -804,7 +780,7 @@ namespace MaternalRiskPredictor
         }
     }
 
-    /// <summary>One line of the training log: the network's scores after a given epoch.</summary>
+    // One line of the training log: the network's scores after a given epoch
     public class TrainingRecord
     {
         public int Epoch;

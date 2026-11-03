@@ -10,16 +10,12 @@ using System.Windows.Forms;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// Main window: Maternal Health Risk Classification.
-    ///
-    /// This class is split across three files (partial class) so two people can work
-    /// without editing the same file:
-    ///   Form1.cs        - constructor and shared helpers         (UI + preprocessing owner)
-    ///   Form1.Data.cs   - loading, cleaning, split, scaling      (UI + preprocessing owner)
-    ///   Form1.Model.cs  - network, training, evaluation, tuning  (logic owner)
-    /// The controls themselves live in Form1.Designer.cs (only the UI owner opens the Designer).
-    /// </summary>
+    /* 
+       Form1 is split into partial files:
+           Form1.cs       - constructor and helpers used by the other two files
+           Form1.Data.cs  - loading, cleaning, splitting and scaling the dataset
+           Form1.model.cs - creating, training, evaluating and tuning the network
+    */
     public partial class Form1 : Form
     {
         public Form1()
@@ -35,16 +31,11 @@ namespace MaternalRiskPredictor
             Log("Steps: Load CSV -> Clean + Split + Normalize -> Create NN -> Train NN -> Evaluate.");
             Log("");
 
-            // Buttons are connected in code, never by double-clicking in the Designer.
+          
             WireDataEvents();   // Form1.Data.cs
             WireModelEvents();  // Form1.Model.cs
         }
 
-        // =====================================================================
-        // Shared helpers (both partial files may call these)
-        // =====================================================================
-
-        /// <summary>Read-only grid, no empty "new row", columns fill the width.</summary>
         protected static void SetupGrid(DataGridView grid)
         {
             grid.ReadOnly = true;
@@ -57,30 +48,23 @@ namespace MaternalRiskPredictor
             grid.BackgroundColor = Color.White;
         }
 
-        /// <summary>Adds one line to the Training log tab.</summary>
         protected void Log(string line)
         {
             txtLog.AppendText(line + Environment.NewLine);
         }
-
-        /// <summary>Text in the status bar at the bottom left.</summary>
         protected void SetStatus(string text)
         {
             lblStatus.Text = text;
         }
 
-        /// <summary>Simple information popup.</summary>
         protected void Warn(string message)
         {
             MessageBox.Show(this, message, "Maternal Health Risk Classification",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        /// <summary>
-        /// Disables every input while a background job (training or grid search) runs,
-        /// so nothing can change the data or the network underneath it. Stop is the only
-        /// button left enabled.
-        /// </summary>
+        // Locks the inputs while training or tuning runs in the background, so the data
+        // and the network can't change underneath it. Only Stop stays enabled. 
         protected void SetBusy(bool busy)
         {
             grpData.Enabled = !busy;

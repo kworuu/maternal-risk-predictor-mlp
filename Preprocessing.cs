@@ -3,18 +3,16 @@ using System.Collections.Generic;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// Cleaning and splitting. Every method returns NEW lists, so the raw data is never changed.
-    /// Correct order (see Form1.Data.cs):
-    ///   1. RemoveDuplicates   - on the whole file, BEFORE splitting, so no patient can end up
-    ///                           in both the training and the test set (that would be data leakage)
-    ///   2. RemoveImpossible   - heart rate below 40 bpm
-    ///   3. Split              - stratified 80/20 with a fixed seed
-    ///   4. MinMaxScaler.Fit   - on the TRAINING set only, then Transform both sets
-    /// </summary>
+    // Order used in Form1.Data.cs:
+    //   1. RemoveDuplicates on the whole file, before splitting, so the same patient can't
+    //      end up in both the training and the test set (data leakage)
+    //   2. RemoveImpossible
+    //   3. Split (stratified 80/20, fixed seed)
+    //   4. MinMaxScaler.Fit on the training set only, then Transform both sets
+    // Every method returns new lists; the raw data is never modified.
     public static class Preprocessing
     {
-        /// <summary>Keeps the first occurrence of each row and drops later exact copies.</summary>
+       
         public static List<Patient> RemoveDuplicates(List<Patient> data, out int removed)
         {
             bool[] isDuplicate = MaternalData.FindDuplicates(data);
@@ -25,7 +23,6 @@ namespace MaternalRiskPredictor
             return result;
         }
 
-        /// <summary>Drops rows with a physiologically impossible value (heart rate below 40 bpm).</summary>
         public static List<Patient> RemoveImpossible(List<Patient> data, out int removed)
         {
             List<Patient> result = new List<Patient>();
@@ -35,11 +32,9 @@ namespace MaternalRiskPredictor
             return result;
         }
 
-        /// <summary>
-        /// Shuffles with a fixed seed and splits into training and test sets.
-        /// Stratified = each risk level is split separately, so both sets keep the same
-        /// low / mid / high proportions as the whole dataset.
-        /// </summary>
+        // Stratified: each risk level is shuffled and split on its own, so the training and
+        // test sets keep the same low / mid / high proportions as the full dataset.
+
         public static void Split(List<Patient> data, double trainFraction, int seed, bool stratified,
             out List<Patient> train, out List<Patient> test)
         {
@@ -80,10 +75,8 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>
-        /// How many test rows are exact copies of a training row.
-        /// Should be 0 after duplicate removal; above 0 means the test set leaks training data.
-        /// </summary>
+        // Test rows that are exact copies of a training row. Should be 0 once duplicates
+        // are removed; anything above 0 means the test score is partly memorisation.
         public static int CountLeakedRows(List<Patient> train, List<Patient> test)
         {
             Dictionary<string, bool> trainKeys = new Dictionary<string, bool>();
@@ -98,7 +91,7 @@ namespace MaternalRiskPredictor
             return leaked;
         }
 
-        /// <summary>Fisher-Yates shuffle.</summary>
+        // Fisher-Yates shuffle
         public static void Shuffle<T>(IList<T> list, Random rnd)
         {
             for (int i = 0; i < list.Count; i++)
@@ -111,12 +104,9 @@ namespace MaternalRiskPredictor
         }
     }
 
-    /// <summary>
-    /// Min-max scaling to [0, 1]:  x' = (x - min) / (max - min)
-    /// Min and max are learned from the TRAINING set only and then reused for the test set
-    /// and for new patients (Classify one patient). Test values can fall slightly outside
-    /// [0, 1]; that is expected and correct.
-    /// </summary>
+    // Scales each feature to [0, 1] with x' = (x - min) / (max - min).
+    // Min and max come from the training set only and are reused for the test set and for
+    // single-patient predictions, so test values can land slightly outside [0, 1]. That's expected.
     public class MinMaxScaler
     {
         public double[] Min;
@@ -141,7 +131,6 @@ namespace MaternalRiskPredictor
             }
         }
 
-        /// <summary>Scales one patient's 6 raw values.</summary>
         public double[] Transform(double[] raw)
         {
             double[] result = new double[raw.Length];
@@ -153,7 +142,6 @@ namespace MaternalRiskPredictor
             return result;
         }
 
-        /// <summary>Scales a whole list; returns new Patient objects (the input is unchanged).</summary>
         public List<Patient> Transform(List<Patient> data)
         {
             List<Patient> result = new List<Patient>();
