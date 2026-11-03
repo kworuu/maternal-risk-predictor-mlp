@@ -230,16 +230,23 @@ namespace MaternalRiskPredictor
         private const string TrainSeries = "Train MSE";
         private const string TestSeries = "Test MSE";
 
+        // The loss chart is created in code, not in the Designer, so Form1.Designer.cs
+        // (owned by the UI partner) never has to change. It replaces the old picLoss box.
+        private Chart chartLoss;
+
         /// <summary>
-        /// Builds the chart in code (the Designer's default Series1/ChartArea1 are removed):
+        /// Creates the chart, puts it on the Loss curve tab in place of picLoss, and sets it up:
         /// one area, x = epoch, y = MSE, two lines (train in blue, test in orange).
         /// </summary>
         private void SetupLossChart()
         {
-            chartLoss.Series.Clear();
-            chartLoss.ChartAreas.Clear();
-            chartLoss.Legends.Clear();
-            chartLoss.Titles.Clear();
+            chartLoss = new Chart();
+            chartLoss.Name = "chartLoss";
+            chartLoss.Dock = DockStyle.Fill;
+            chartLoss.BackColor = Color.White;
+            picLoss.Visible = false;              // the old PictureBox placeholder from the 3.5 plan
+            tabLoss.Controls.Add(chartLoss);
+            chartLoss.BringToFront();
 
             ChartArea area = new ChartArea("Loss");
             area.AxisX.Title = "Epoch";
