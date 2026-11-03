@@ -33,17 +33,32 @@
             this.progressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.tabMain = new System.Windows.Forms.TabControl();
             this.tabLog = new System.Windows.Forms.TabPage();
+            this.txtLog = new System.Windows.Forms.TextBox();
             this.tabLoss = new System.Windows.Forms.TabPage();
             this.tabEval = new System.Windows.Forms.TabPage();
             this.tabData = new System.Windows.Forms.TabPage();
-            this.tabTuning = new System.Windows.Forms.TabPage();
-            this.txtLog = new System.Windows.Forms.TextBox();
             this.dgvData = new System.Windows.Forms.DataGridView();
+            this.tabTuning = new System.Windows.Forms.TabPage();
+            this.grpData = new System.Windows.Forms.GroupBox();
+            this.btnLoad = new System.Windows.Forms.Button();
+            this.lblFile = new System.Windows.Forms.Label();
+            this.lblDataInfo = new System.Windows.Forms.Label();
+            this.lblTrainPct = new System.Windows.Forms.Label();
+            this.lblSeed = new System.Windows.Forms.Label();
+            this.numTrainPct = new System.Windows.Forms.NumericUpDown();
+            this.numSeed = new System.Windows.Forms.NumericUpDown();
+            this.chkStratified = new System.Windows.Forms.CheckBox();
+            this.chkRemoveDuplicates = new System.Windows.Forms.CheckBox();
+            this.chkRemoveImpossible = new System.Windows.Forms.CheckBox();
+            this.btnPrepare = new System.Windows.Forms.Button();
             this.statusStrip.SuspendLayout();
             this.tabMain.SuspendLayout();
             this.tabLog.SuspendLayout();
             this.tabData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvData)).BeginInit();
+            this.grpData.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numTrainPct)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numSeed)).BeginInit();
             this.SuspendLayout();
             // 
             // statusStrip
@@ -98,6 +113,20 @@
             this.tabLog.Text = "Training Log";
             this.tabLog.UseVisualStyleBackColor = true;
             // 
+            // txtLog
+            // 
+            this.txtLog.BackColor = System.Drawing.Color.White;
+            this.txtLog.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.txtLog.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtLog.Location = new System.Drawing.Point(3, 3);
+            this.txtLog.Multiline = true;
+            this.txtLog.Name = "txtLog";
+            this.txtLog.ReadOnly = true;
+            this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtLog.Size = new System.Drawing.Size(720, 615);
+            this.txtLog.TabIndex = 0;
+            this.txtLog.WordWrap = false;
+            // 
             // tabLoss
             // 
             this.tabLoss.Location = new System.Drawing.Point(4, 25);
@@ -129,30 +158,6 @@
             this.tabData.Text = "Data";
             this.tabData.UseVisualStyleBackColor = true;
             // 
-            // tabTuning
-            // 
-            this.tabTuning.Location = new System.Drawing.Point(4, 25);
-            this.tabTuning.Name = "tabTuning";
-            this.tabTuning.Padding = new System.Windows.Forms.Padding(3);
-            this.tabTuning.Size = new System.Drawing.Size(726, 621);
-            this.tabTuning.TabIndex = 4;
-            this.tabTuning.Text = "Tuning";
-            this.tabTuning.UseVisualStyleBackColor = true;
-            // 
-            // txtLog
-            // 
-            this.txtLog.BackColor = System.Drawing.Color.White;
-            this.txtLog.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.txtLog.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtLog.Location = new System.Drawing.Point(3, 3);
-            this.txtLog.Multiline = true;
-            this.txtLog.Name = "txtLog";
-            this.txtLog.ReadOnly = true;
-            this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.txtLog.Size = new System.Drawing.Size(720, 615);
-            this.txtLog.TabIndex = 0;
-            this.txtLog.WordWrap = false;
-            // 
             // dgvData
             // 
             this.dgvData.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -166,11 +171,172 @@
             this.dgvData.Size = new System.Drawing.Size(720, 589);
             this.dgvData.TabIndex = 0;
             // 
+            // tabTuning
+            // 
+            this.tabTuning.Location = new System.Drawing.Point(4, 25);
+            this.tabTuning.Name = "tabTuning";
+            this.tabTuning.Padding = new System.Windows.Forms.Padding(3);
+            this.tabTuning.Size = new System.Drawing.Size(726, 621);
+            this.tabTuning.TabIndex = 4;
+            this.tabTuning.Text = "Tuning";
+            this.tabTuning.UseVisualStyleBackColor = true;
+            // 
+            // grpData
+            // 
+            this.grpData.Controls.Add(this.btnPrepare);
+            this.grpData.Controls.Add(this.chkRemoveImpossible);
+            this.grpData.Controls.Add(this.chkRemoveDuplicates);
+            this.grpData.Controls.Add(this.chkStratified);
+            this.grpData.Controls.Add(this.numSeed);
+            this.grpData.Controls.Add(this.numTrainPct);
+            this.grpData.Controls.Add(this.lblSeed);
+            this.grpData.Controls.Add(this.lblTrainPct);
+            this.grpData.Controls.Add(this.lblDataInfo);
+            this.grpData.Controls.Add(this.lblFile);
+            this.grpData.Controls.Add(this.btnLoad);
+            this.grpData.Location = new System.Drawing.Point(12, 12);
+            this.grpData.Name = "grpData";
+            this.grpData.Size = new System.Drawing.Size(330, 218);
+            this.grpData.TabIndex = 2;
+            this.grpData.TabStop = false;
+            this.grpData.Text = "1. Data";
+            // 
+            // btnLoad
+            // 
+            this.btnLoad.Location = new System.Drawing.Point(12, 20);
+            this.btnLoad.Name = "btnLoad";
+            this.btnLoad.Size = new System.Drawing.Size(100, 28);
+            this.btnLoad.TabIndex = 0;
+            this.btnLoad.Text = "Load CSV...\t";
+            this.btnLoad.UseVisualStyleBackColor = true;
+            // 
+            // lblFile
+            // 
+            this.lblFile.AutoSize = true;
+            this.lblFile.Location = new System.Drawing.Point(120, 27);
+            this.lblFile.Name = "lblFile";
+            this.lblFile.Size = new System.Drawing.Size(91, 16);
+            this.lblFile.TabIndex = 1;
+            this.lblFile.Text = "No file loaded";
+            // 
+            // lblDataInfo
+            // 
+            this.lblDataInfo.AutoSize = true;
+            this.lblDataInfo.ForeColor = System.Drawing.Color.DimGray;
+            this.lblDataInfo.Location = new System.Drawing.Point(12, 55);
+            this.lblDataInfo.Name = "lblDataInfo";
+            this.lblDataInfo.Size = new System.Drawing.Size(143, 16);
+            this.lblDataInfo.TabIndex = 2;
+            this.lblDataInfo.Text = "Load the CSV to begin.";
+            // 
+            // lblTrainPct
+            // 
+            this.lblTrainPct.AutoSize = true;
+            this.lblTrainPct.Location = new System.Drawing.Point(12, 84);
+            this.lblTrainPct.Name = "lblTrainPct";
+            this.lblTrainPct.Size = new System.Drawing.Size(74, 16);
+            this.lblTrainPct.TabIndex = 3;
+            this.lblTrainPct.Text = "Training %:\t";
+            // 
+            // lblSeed
+            // 
+            this.lblSeed.AutoSize = true;
+            this.lblSeed.Location = new System.Drawing.Point(175, 84);
+            this.lblSeed.Name = "lblSeed";
+            this.lblSeed.Size = new System.Drawing.Size(70, 16);
+            this.lblSeed.TabIndex = 4;
+            this.lblSeed.Text = "Split seed:";
+            // 
+            // numTrainPct
+            // 
+            this.numTrainPct.Location = new System.Drawing.Point(90, 81);
+            this.numTrainPct.Maximum = new decimal(new int[] {
+            95,
+            0,
+            0,
+            0});
+            this.numTrainPct.Minimum = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+            this.numTrainPct.Name = "numTrainPct";
+            this.numTrainPct.Size = new System.Drawing.Size(60, 22);
+            this.numTrainPct.TabIndex = 5;
+            this.numTrainPct.Value = new decimal(new int[] {
+            80,
+            0,
+            0,
+            0});
+            // 
+            // numSeed
+            // 
+            this.numSeed.Location = new System.Drawing.Point(248, 81);
+            this.numSeed.Maximum = new decimal(new int[] {
+            9999,
+            0,
+            0,
+            0});
+            this.numSeed.Name = "numSeed";
+            this.numSeed.Size = new System.Drawing.Size(70, 22);
+            this.numSeed.TabIndex = 6;
+            this.numSeed.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // chkStratified
+            // 
+            this.chkStratified.AutoSize = true;
+            this.chkStratified.Checked = true;
+            this.chkStratified.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkStratified.Location = new System.Drawing.Point(15, 110);
+            this.chkStratified.Name = "chkStratified";
+            this.chkStratified.Size = new System.Drawing.Size(272, 20);
+            this.chkStratified.TabIndex = 7;
+            this.chkStratified.Text = "Stratified split (same share of each class)";
+            this.chkStratified.UseVisualStyleBackColor = true;
+            // 
+            // chkRemoveDuplicates
+            // 
+            this.chkRemoveDuplicates.AutoSize = true;
+            this.chkRemoveDuplicates.Checked = true;
+            this.chkRemoveDuplicates.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkRemoveDuplicates.Location = new System.Drawing.Point(15, 132);
+            this.chkRemoveDuplicates.Name = "chkRemoveDuplicates";
+            this.chkRemoveDuplicates.Size = new System.Drawing.Size(268, 20);
+            this.chkRemoveDuplicates.TabIndex = 8;
+            this.chkRemoveDuplicates.Text = "Remove duplicate rows (before splitting)";
+            this.chkRemoveDuplicates.UseVisualStyleBackColor = true;
+            // 
+            // chkRemoveImpossible
+            // 
+            this.chkRemoveImpossible.AutoSize = true;
+            this.chkRemoveImpossible.Checked = true;
+            this.chkRemoveImpossible.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkRemoveImpossible.Location = new System.Drawing.Point(15, 154);
+            this.chkRemoveImpossible.Name = "chkRemoveImpossible";
+            this.chkRemoveImpossible.Size = new System.Drawing.Size(287, 20);
+            this.chkRemoveImpossible.TabIndex = 9;
+            this.chkRemoveImpossible.Text = "Remove impossible values (heart rate < 40)";
+            this.chkRemoveImpossible.UseVisualStyleBackColor = true;
+            // 
+            // btnPrepare
+            // 
+            this.btnPrepare.Location = new System.Drawing.Point(12, 178);
+            this.btnPrepare.Name = "btnPrepare";
+            this.btnPrepare.Size = new System.Drawing.Size(306, 28);
+            this.btnPrepare.TabIndex = 10;
+            this.btnPrepare.Text = "Clean + Split + Normalize (Min-Max to [0, 1])";
+            this.btnPrepare.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1114, 692);
+            this.Controls.Add(this.grpData);
             this.Controls.Add(this.tabMain);
             this.Controls.Add(this.statusStrip);
             this.MinimumSize = new System.Drawing.Size(1132, 739);
@@ -184,6 +350,10 @@
             this.tabLog.PerformLayout();
             this.tabData.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dgvData)).EndInit();
+            this.grpData.ResumeLayout(false);
+            this.grpData.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numTrainPct)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numSeed)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -202,6 +372,18 @@
         private System.Windows.Forms.TabPage tabTuning;
         private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.DataGridView dgvData;
+        private System.Windows.Forms.GroupBox grpData;
+        private System.Windows.Forms.Label lblSeed;
+        private System.Windows.Forms.Label lblTrainPct;
+        private System.Windows.Forms.Label lblDataInfo;
+        private System.Windows.Forms.Label lblFile;
+        private System.Windows.Forms.Button btnLoad;
+        private System.Windows.Forms.NumericUpDown numTrainPct;
+        private System.Windows.Forms.NumericUpDown numSeed;
+        private System.Windows.Forms.Button btnPrepare;
+        private System.Windows.Forms.CheckBox chkRemoveImpossible;
+        private System.Windows.Forms.CheckBox chkRemoveDuplicates;
+        private System.Windows.Forms.CheckBox chkStratified;
     }
 }
 
