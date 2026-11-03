@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Windows.Forms;
 
 namespace MaternalRiskPredictor
@@ -15,11 +16,23 @@ namespace MaternalRiskPredictor
         // ---- network ----
         private NetworkTrainer trainer;   // null until Create NN is clicked
 
+        // ---- training history (one record per logged epoch; L3 draws and exports it) ----
+        private List<TrainingRecord> trainingHistory = new List<TrainingRecord>();
+
         /// <summary>Connects the model buttons. Called once from the constructor.</summary>
         private void WireModelEvents()
         {
             btnCreate.Click += new EventHandler(btnCreate_Click);
-            // L2: btnTrain, btnStop, bgwTrain events
+
+            // L2: training runs on a background thread so the window stays responsive
+            btnTrain.Click += new EventHandler(btnTrain_Click);
+            btnStop.Click += new EventHandler(btnStop_Click);
+            bgwTrain.DoWork += new DoWorkEventHandler(bgwTrain_DoWork);
+            bgwTrain.ProgressChanged += new ProgressChangedEventHandler(bgwTrain_ProgressChanged);
+            bgwTrain.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgwTrain_RunWorkerCompleted);
+            this.FormClosing += new FormClosingEventHandler(Form1_FormClosingModel);
+            btnStop.Enabled = false;
+
             // L3: btnExport
             // L4: btnEvaluate
             // L5: btnPredict
@@ -35,6 +48,7 @@ namespace MaternalRiskPredictor
             if (trainer != null)
             {
                 trainer = null;
+                trainingHistory.Clear();
                 Log("Data changed: the old network was discarded. Click Create NN again.");
             }
         }
@@ -54,13 +68,176 @@ namespace MaternalRiskPredictor
             int hidden = (int)numHidden.Value;
             trainer = new NetworkTrainer(hidden, (int)numSeed.Value);
 
+            // Epoch 0 = the untrained network. It is the first point of the loss curve.
+            trainingHistory.Clear();
+            TrainingRecord start = MakeRecord();
+            trainingHistory.Add(start);
+
             Log(string.Format("Created a {0}-{1}-{2} network with random weights.",
                 MaternalData.NumFeatures, hidden, MaternalData.NumClasses));
             Log(string.Format("  Before training: train MSE {0:F5}, test accuracy {1:P1} (random guessing)",
-                trainer.ComputeMse(trainSet), trainer.ComputeAccuracy(testSet)));
+                start.TrainMse, start.TestAccuracy));
             Log("");
             tabMain.SelectedTab = tabLog;
             SetStatus("Network created. Next: Train NN.");
         }
+
+        // =====================================================================
+        // L2: Train / Stop
+        // =====================================================================
+
+        /// <summary>The settings one training run needs, read on the UI thread before it starts.</summary>
+        private class TrainJob
+        {
+            public int Epochs;      // how many MORE epochs to train
+            public int LogEvery;    // log a line every N epochs
+        }
+
+        private void btnTrain_Click(object sender, EventArgs e)
+        {
+            if (trainer == null)
+            {
+                Warn("Click \"Create NN\" first.");
+                return;
+            }
+            if (bgwTrain.IsBusy) return;
+
+            // Read the controls HERE: the background thread must never touch the UI.
+            TrainJob job = new TrainJob();
+            job.Epochs = (int)numEpochs.Value;
+            job.LogEvery = Math.Max(1, (int)numLogEvery.Value);
+
+            Log(string.Format("Training for {0} epochs ({1} training rows per epoch), logging every {2}...",
+                job.Epochs, trainSet.Count, job.LogEvery));
+            Log("   Epoch | Train MSE | Test MSE | Train acc | Test acc");
+
+            SetBusy(true);            // locks the other buttons, enables Stop, resets the bar
+            tabMain.SelectedTab = tabLog;
+            SetStatus("Training...");
+            bgwTrain.RunWorkerAsync(job);
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            if (bgwTrain.IsBusy)
+            {
+                bgwTrain.CancelAsync();   // the loop checks this flag before each epoch
+                btnStop.Enabled = false;
+                SetStatus("Stopping after the current epoch...");
+            }
+        }
+
+        /// <summary>BACKGROUND THREAD. Runs the epochs. No UI calls here, only ReportProgress.</summary>
+        private void bgwTrain_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = (BackgroundWorker)sender;
+            TrainJob job = (TrainJob)e.Argument;
+            int lastPercent = -1;
+
+            for (int i = 1; i <= job.Epochs; i++)
+            {
+                if (worker.CancellationPending)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                trainer.TrainOneEpoch(trainSet);   // one pass over all 361 training rows
+
+                int percent = (int)(100L * i / job.Epochs);
+                bool logThis = (i % job.LogEvery == 0) || (i == job.Epochs);
+
+                if (logThis)
+                    worker.ReportProgress(percent, MakeRecord());   // record goes to the UI thread
+                else if (percent != lastPercent)
+                    worker.ReportProgress(percent, null);           // only moves the progress bar
+                lastPercent = percent;
+            }
+        }
+
+        /// <summary>UI THREAD. Moves the bar and, when a record arrives, logs and stores it.</summary>
+        private void bgwTrain_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar.Value = Math.Min(Math.Max(e.ProgressPercentage, 0), 100);
+
+            TrainingRecord r = e.UserState as TrainingRecord;
+            if (r != null)
+            {
+                trainingHistory.Add(r);
+                Log(FormatRecord(r));
+                SetStatus(string.Format("Training... epoch {0}", r.Epoch));
+            }
+        }
+
+        /// <summary>UI THREAD. Runs once when training finishes, is stopped, or crashes.</summary>
+        private void bgwTrain_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            SetBusy(false);
+
+            if (e.Error != null)
+            {
+                Log("Training failed: " + e.Error.Message);
+                Warn("Training failed: " + e.Error.Message);
+                SetStatus("Training failed.");
+                return;
+            }
+
+            // If it was stopped between log lines, record where it actually ended.
+            TrainingRecord last = trainingHistory[trainingHistory.Count - 1];
+            if (last.Epoch != trainer.EpochsTrained)
+            {
+                last = MakeRecord();
+                trainingHistory.Add(last);
+                Log(FormatRecord(last));
+            }
+
+            if (e.Cancelled)
+                Log(string.Format("Stopped by the user at epoch {0}.", trainer.EpochsTrained));
+            else
+                Log(string.Format("Training finished: {0} epochs in total.", trainer.EpochsTrained));
+
+            Log(string.Format("  Final: train MSE {0:F5}, test MSE {1:F5}, train acc {2:P1}, test acc {3:P1}",
+                last.TrainMse, last.TestMse, last.TrainAccuracy, last.TestAccuracy));
+            Log("  Click Train NN again to continue from here, or Create NN to start over.");
+            Log("");
+            SetStatus(string.Format("Trained {0} epochs. Test accuracy {1:P1}.",
+                trainer.EpochsTrained, last.TestAccuracy));
+        }
+
+        /// <summary>Closing the window mid-training: ask the worker to stop first.</summary>
+        private void Form1_FormClosingModel(object sender, FormClosingEventArgs e)
+        {
+            if (bgwTrain.IsBusy) bgwTrain.CancelAsync();
+        }
+
+        // ---- helpers ----
+
+        /// <summary>Measures the current network on both sets. Safe on either thread.</summary>
+        private TrainingRecord MakeRecord()
+        {
+            TrainingRecord r = new TrainingRecord();
+            r.Epoch = trainer.EpochsTrained;
+            r.TrainMse = trainer.ComputeMse(trainSet);
+            r.TestMse = trainer.ComputeMse(testSet);
+            r.TrainAccuracy = trainer.ComputeAccuracy(trainSet);
+            r.TestAccuracy = trainer.ComputeAccuracy(testSet);
+            return r;
+        }
+
+        private static string FormatRecord(TrainingRecord r)
+        {
+            return string.Format("  {0,6} |  {1:F5}  | {2:F5}  |  {3,6:P1}  | {4,6:P1}",
+                r.Epoch, r.TrainMse, r.TestMse, r.TrainAccuracy, r.TestAccuracy);
+        }
+    }
+
+    /// <summary>One line of the training log: the network's scores after a given epoch.</summary>
+    public class TrainingRecord
+    {
+        public int Epoch;
+        public double TrainMse;
+        public double TestMse;
+        public double TrainAccuracy;
+        public double TestAccuracy;
     }
 }
