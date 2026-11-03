@@ -37,9 +37,9 @@
             this.tabLoss = new System.Windows.Forms.TabPage();
             this.picLoss = new System.Windows.Forms.PictureBox();
             this.tabEval = new System.Windows.Forms.TabPage();
-            this.dataGridView2 = new System.Windows.Forms.DataGridView();
+            this.dgvMetrics = new System.Windows.Forms.DataGridView();
             this.lblMetricsTitle = new System.Windows.Forms.Label();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.dgvConfusion = new System.Windows.Forms.DataGridView();
             this.lblConfusionTitle = new System.Windows.Forms.Label();
             this.lblAccuracy = new System.Windows.Forms.Label();
             this.tabData = new System.Windows.Forms.TabPage();
@@ -49,6 +49,15 @@
             this.rdoRaw = new System.Windows.Forms.RadioButton();
             this.dgvData = new System.Windows.Forms.DataGridView();
             this.tabTuning = new System.Windows.Forms.TabPage();
+            this.dgvTuning = new System.Windows.Forms.DataGridView();
+            this.numRepeats = new System.Windows.Forms.NumericUpDown();
+            this.btnRunTuning = new System.Windows.Forms.Button();
+            this.txtEpochList = new System.Windows.Forms.TextBox();
+            this.lblHiddenList = new System.Windows.Forms.Label();
+            this.lblTuningNote = new System.Windows.Forms.Label();
+            this.lblRepeats = new System.Windows.Forms.Label();
+            this.lblEpochList = new System.Windows.Forms.Label();
+            this.txtHiddenList = new System.Windows.Forms.TextBox();
             this.grpData = new System.Windows.Forms.GroupBox();
             this.btnPrepare = new System.Windows.Forms.Button();
             this.chkRemoveImpossible = new System.Windows.Forms.CheckBox();
@@ -91,26 +100,21 @@
             this.lblSystolic = new System.Windows.Forms.Label();
             this.numAge = new System.Windows.Forms.NumericUpDown();
             this.lblAge = new System.Windows.Forms.Label();
-            this.txtHiddenList = new System.Windows.Forms.TextBox();
-            this.lblEpochList = new System.Windows.Forms.Label();
-            this.lblRepeats = new System.Windows.Forms.Label();
-            this.lblTuningNote = new System.Windows.Forms.Label();
-            this.lblHiddenList = new System.Windows.Forms.Label();
-            this.txtEpochList = new System.Windows.Forms.TextBox();
-            this.btnRunTuning = new System.Windows.Forms.Button();
-            this.numRepeats = new System.Windows.Forms.NumericUpDown();
-            this.dgvTuning = new System.Windows.Forms.DataGridView();
+            this.bgwTrain = new System.ComponentModel.BackgroundWorker();
+            this.bgwTuning = new System.ComponentModel.BackgroundWorker();
             this.statusStrip.SuspendLayout();
             this.tabMain.SuspendLayout();
             this.tabLog.SuspendLayout();
             this.tabLoss.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.picLoss)).BeginInit();
             this.tabEval.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvMetrics)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvConfusion)).BeginInit();
             this.tabData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvData)).BeginInit();
             this.tabTuning.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvTuning)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numRepeats)).BeginInit();
             this.grpData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numSeed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numTrainPct)).BeginInit();
@@ -126,8 +130,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numDiastolic)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numSystolic)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numAge)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numRepeats)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvTuning)).BeginInit();
             this.SuspendLayout();
             // 
             // statusStrip
@@ -169,7 +171,7 @@
             this.tabMain.Name = "tabMain";
             this.tabMain.SelectedIndex = 0;
             this.tabMain.Size = new System.Drawing.Size(828, 690);
-            this.tabMain.TabIndex = 1;
+            this.tabMain.TabIndex = 4;
             // 
             // tabLog
             // 
@@ -219,9 +221,9 @@
             // 
             // tabEval
             // 
-            this.tabEval.Controls.Add(this.dataGridView2);
+            this.tabEval.Controls.Add(this.dgvMetrics);
             this.tabEval.Controls.Add(this.lblMetricsTitle);
-            this.tabEval.Controls.Add(this.dataGridView1);
+            this.tabEval.Controls.Add(this.dgvConfusion);
             this.tabEval.Controls.Add(this.lblConfusionTitle);
             this.tabEval.Controls.Add(this.lblAccuracy);
             this.tabEval.Location = new System.Drawing.Point(4, 25);
@@ -232,15 +234,15 @@
             this.tabEval.Text = "Evaluation";
             this.tabEval.UseVisualStyleBackColor = true;
             // 
-            // dataGridView2
+            // dgvMetrics
             // 
-            this.dataGridView2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView2.Location = new System.Drawing.Point(12, 235);
-            this.dataGridView2.Name = "dataGridView2";
-            this.dataGridView2.RowHeadersWidth = 51;
-            this.dataGridView2.RowTemplate.Height = 24;
-            this.dataGridView2.Size = new System.Drawing.Size(700, 150);
-            this.dataGridView2.TabIndex = 4;
+            this.dgvMetrics.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvMetrics.Location = new System.Drawing.Point(12, 235);
+            this.dgvMetrics.Name = "dgvMetrics";
+            this.dgvMetrics.RowHeadersWidth = 51;
+            this.dgvMetrics.RowTemplate.Height = 24;
+            this.dgvMetrics.Size = new System.Drawing.Size(700, 150);
+            this.dgvMetrics.TabIndex = 4;
             // 
             // lblMetricsTitle
             // 
@@ -251,15 +253,15 @@
             this.lblMetricsTitle.TabIndex = 3;
             this.lblMetricsTitle.Text = "Per-class metrics on test set";
             // 
-            // dataGridView1
+            // dgvConfusion
             // 
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(12, 84);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowHeadersWidth = 51;
-            this.dataGridView1.RowTemplate.Height = 24;
-            this.dataGridView1.Size = new System.Drawing.Size(700, 110);
-            this.dataGridView1.TabIndex = 2;
+            this.dgvConfusion.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvConfusion.Location = new System.Drawing.Point(12, 84);
+            this.dgvConfusion.Name = "dgvConfusion";
+            this.dgvConfusion.RowHeadersWidth = 51;
+            this.dgvConfusion.RowTemplate.Height = 24;
+            this.dgvConfusion.Size = new System.Drawing.Size(700, 110);
+            this.dgvConfusion.TabIndex = 2;
             // 
             // lblConfusionTitle
             // 
@@ -367,6 +369,104 @@
             this.tabTuning.Text = "Tuning";
             this.tabTuning.UseVisualStyleBackColor = true;
             // 
+            // dgvTuning
+            // 
+            this.dgvTuning.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dgvTuning.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvTuning.Location = new System.Drawing.Point(12, 90);
+            this.dgvTuning.Name = "dgvTuning";
+            this.dgvTuning.RowHeadersWidth = 51;
+            this.dgvTuning.RowTemplate.Height = 24;
+            this.dgvTuning.Size = new System.Drawing.Size(805, 565);
+            this.dgvTuning.TabIndex = 11;
+            // 
+            // numRepeats
+            // 
+            this.numRepeats.Location = new System.Drawing.Point(690, 13);
+            this.numRepeats.Maximum = new decimal(new int[] {
+            20,
+            0,
+            0,
+            0});
+            this.numRepeats.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numRepeats.Name = "numRepeats";
+            this.numRepeats.Size = new System.Drawing.Size(60, 22);
+            this.numRepeats.TabIndex = 9;
+            this.numRepeats.Value = new decimal(new int[] {
+            5,
+            0,
+            0,
+            0});
+            // 
+            // btnRunTuning
+            // 
+            this.btnRunTuning.Location = new System.Drawing.Point(12, 46);
+            this.btnRunTuning.Name = "btnRunTuning";
+            this.btnRunTuning.Size = new System.Drawing.Size(150, 32);
+            this.btnRunTuning.TabIndex = 8;
+            this.btnRunTuning.Text = "Run grid search";
+            this.btnRunTuning.UseVisualStyleBackColor = true;
+            // 
+            // txtEpochList
+            // 
+            this.txtEpochList.Location = new System.Drawing.Point(370, 13);
+            this.txtEpochList.Name = "txtEpochList";
+            this.txtEpochList.Size = new System.Drawing.Size(190, 22);
+            this.txtEpochList.TabIndex = 7;
+            this.txtEpochList.Text = "10, 50, 100, 500, 1000, 2000";
+            // 
+            // lblHiddenList
+            // 
+            this.lblHiddenList.AutoSize = true;
+            this.lblHiddenList.Location = new System.Drawing.Point(12, 16);
+            this.lblHiddenList.Name = "lblHiddenList";
+            this.lblHiddenList.Size = new System.Drawing.Size(88, 16);
+            this.lblHiddenList.TabIndex = 6;
+            this.lblHiddenList.Text = "Hidden sizes:";
+            // 
+            // lblTuningNote
+            // 
+            this.lblTuningNote.AutoSize = true;
+            this.lblTuningNote.ForeColor = System.Drawing.Color.DimGray;
+            this.lblTuningNote.Location = new System.Drawing.Point(175, 54);
+            this.lblTuningNote.Name = "lblTuningNote";
+            this.lblTuningNote.Size = new System.Drawing.Size(512, 16);
+            this.lblTuningNote.TabIndex = 5;
+            this.lblTuningNote.Text = "Each configuration is trained several times and averaged. The best row is highlig" +
+    "hted.";
+            // 
+            // lblRepeats
+            // 
+            this.lblRepeats.AutoSize = true;
+            this.lblRepeats.Location = new System.Drawing.Point(580, 16);
+            this.lblRepeats.Name = "lblRepeats";
+            this.lblRepeats.Size = new System.Drawing.Size(103, 16);
+            this.lblRepeats.TabIndex = 4;
+            this.lblRepeats.Text = "Runs per config:";
+            // 
+            // lblEpochList
+            // 
+            this.lblEpochList.AutoSize = true;
+            this.lblEpochList.Location = new System.Drawing.Point(275, 16);
+            this.lblEpochList.Name = "lblEpochList";
+            this.lblEpochList.Size = new System.Drawing.Size(91, 16);
+            this.lblEpochList.TabIndex = 3;
+            this.lblEpochList.Text = "Epoch counts:";
+            // 
+            // txtHiddenList
+            // 
+            this.txtHiddenList.Location = new System.Drawing.Point(105, 13);
+            this.txtHiddenList.Name = "txtHiddenList";
+            this.txtHiddenList.Size = new System.Drawing.Size(150, 22);
+            this.txtHiddenList.TabIndex = 1;
+            this.txtHiddenList.Text = "2, 4, 6, 8";
+            // 
             // grpData
             // 
             this.grpData.Controls.Add(this.btnPrepare);
@@ -383,7 +483,7 @@
             this.grpData.Location = new System.Drawing.Point(12, 12);
             this.grpData.Name = "grpData";
             this.grpData.Size = new System.Drawing.Size(400, 218);
-            this.grpData.TabIndex = 2;
+            this.grpData.TabIndex = 0;
             this.grpData.TabStop = false;
             this.grpData.Text = "1. Data";
             // 
@@ -464,7 +564,7 @@
             0});
             this.numTrainPct.Name = "numTrainPct";
             this.numTrainPct.Size = new System.Drawing.Size(60, 22);
-            this.numTrainPct.TabIndex = 5;
+            this.numTrainPct.TabIndex = 4;
             this.numTrainPct.Value = new decimal(new int[] {
             80,
             0,
@@ -477,7 +577,7 @@
             this.lblSeed.Location = new System.Drawing.Point(180, 84);
             this.lblSeed.Name = "lblSeed";
             this.lblSeed.Size = new System.Drawing.Size(70, 16);
-            this.lblSeed.TabIndex = 4;
+            this.lblSeed.TabIndex = 5;
             this.lblSeed.Text = "Split seed:";
             // 
             // lblTrainPct
@@ -533,7 +633,7 @@
             this.grpNetwork.Location = new System.Drawing.Point(12, 236);
             this.grpNetwork.Name = "grpNetwork";
             this.grpNetwork.Size = new System.Drawing.Size(400, 206);
-            this.grpNetwork.TabIndex = 3;
+            this.grpNetwork.TabIndex = 1;
             this.grpNetwork.TabStop = false;
             this.grpNetwork.Text = "2. Network and training";
             // 
@@ -543,7 +643,7 @@
             this.btnStop.Location = new System.Drawing.Point(222, 160);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(96, 32);
-            this.btnStop.TabIndex = 10;
+            this.btnStop.TabIndex = 4;
             this.btnStop.Text = "Stop";
             this.btnStop.UseVisualStyleBackColor = true;
             // 
@@ -552,7 +652,7 @@
             this.btnTrain.Location = new System.Drawing.Point(117, 160);
             this.btnTrain.Name = "btnTrain";
             this.btnTrain.Size = new System.Drawing.Size(96, 32);
-            this.btnTrain.TabIndex = 9;
+            this.btnTrain.TabIndex = 3;
             this.btnTrain.Text = "Train NN";
             this.btnTrain.UseVisualStyleBackColor = true;
             // 
@@ -561,7 +661,7 @@
             this.btnCreate.Location = new System.Drawing.Point(12, 160);
             this.btnCreate.Name = "btnCreate";
             this.btnCreate.Size = new System.Drawing.Size(96, 32);
-            this.btnCreate.TabIndex = 8;
+            this.btnCreate.TabIndex = 0;
             this.btnCreate.Text = "Create NN";
             this.btnCreate.UseVisualStyleBackColor = true;
             // 
@@ -572,7 +672,7 @@
             this.lblLearnRate.Location = new System.Drawing.Point(12, 132);
             this.lblLearnRate.Name = "lblLearnRate";
             this.lblLearnRate.Size = new System.Drawing.Size(272, 16);
-            this.lblLearnRate.TabIndex = 7;
+            this.lblLearnRate.TabIndex = 10;
             this.lblLearnRate.Text = "Learning rate: fixed in engine (0.2 out / 0.15 in)";
             // 
             // numLogEvery
@@ -585,7 +685,7 @@
             0});
             this.numLogEvery.Name = "numLogEvery";
             this.numLogEvery.Size = new System.Drawing.Size(120, 22);
-            this.numLogEvery.TabIndex = 6;
+            this.numLogEvery.TabIndex = 2;
             this.numLogEvery.Value = new decimal(new int[] {
             200,
             0,
@@ -598,7 +698,7 @@
             this.lblLogEvery.Location = new System.Drawing.Point(12, 106);
             this.lblLogEvery.Name = "lblLogEvery";
             this.lblLogEvery.Size = new System.Drawing.Size(131, 16);
-            this.lblLogEvery.TabIndex = 5;
+            this.lblLogEvery.TabIndex = 9;
             this.lblLogEvery.Text = "Log every N epochs:";
             // 
             // numHidden
@@ -616,7 +716,7 @@
             0});
             this.numHidden.Name = "numHidden";
             this.numHidden.Size = new System.Drawing.Size(118, 22);
-            this.numHidden.TabIndex = 4;
+            this.numHidden.TabIndex = 6;
             this.numHidden.Value = new decimal(new int[] {
             6,
             0,
@@ -629,7 +729,7 @@
             this.lblEpochs.Location = new System.Drawing.Point(12, 78);
             this.lblEpochs.Name = "lblEpochs";
             this.lblEpochs.Size = new System.Drawing.Size(143, 16);
-            this.lblEpochs.TabIndex = 3;
+            this.lblEpochs.TabIndex = 8;
             this.lblEpochs.Text = "Epochs per Train click:";
             // 
             // numEpochs
@@ -652,7 +752,7 @@
             0});
             this.numEpochs.Name = "numEpochs";
             this.numEpochs.Size = new System.Drawing.Size(120, 22);
-            this.numEpochs.TabIndex = 2;
+            this.numEpochs.TabIndex = 1;
             this.numEpochs.Value = new decimal(new int[] {
             2000,
             0,
@@ -665,7 +765,7 @@
             this.lblHidden.Location = new System.Drawing.Point(12, 50);
             this.lblHidden.Name = "lblHidden";
             this.lblHidden.Size = new System.Drawing.Size(95, 16);
-            this.lblHidden.TabIndex = 1;
+            this.lblHidden.TabIndex = 4;
             this.lblHidden.Text = "Hidden nodes:";
             // 
             // lblArch
@@ -674,7 +774,7 @@
             this.lblArch.Location = new System.Drawing.Point(12, 22);
             this.lblArch.Name = "lblArch";
             this.lblArch.Size = new System.Drawing.Size(238, 16);
-            this.lblArch.TabIndex = 0;
+            this.lblArch.TabIndex = 7;
             this.lblArch.Text = "\tInputs: 6 Outputs: 3 (low / mid / high risk)\t";
             // 
             // grpEvaluate
@@ -684,7 +784,7 @@
             this.grpEvaluate.Location = new System.Drawing.Point(12, 448);
             this.grpEvaluate.Name = "grpEvaluate";
             this.grpEvaluate.Size = new System.Drawing.Size(400, 64);
-            this.grpEvaluate.TabIndex = 4;
+            this.grpEvaluate.TabIndex = 2;
             this.grpEvaluate.TabStop = false;
             this.grpEvaluate.Text = "3. Evaluate";
             // 
@@ -725,7 +825,7 @@
             this.grpPredict.Location = new System.Drawing.Point(12, 518);
             this.grpPredict.Name = "grpPredict";
             this.grpPredict.Size = new System.Drawing.Size(400, 190);
-            this.grpPredict.TabIndex = 5;
+            this.grpPredict.TabIndex = 3;
             this.grpPredict.TabStop = false;
             this.grpPredict.Text = "4. Classify one patient (raw values)";
             // 
@@ -947,103 +1047,15 @@
             this.lblAge.TabIndex = 0;
             this.lblAge.Text = "Age:";
             // 
-            // txtHiddenList
+            // bgwTrain
             // 
-            this.txtHiddenList.Location = new System.Drawing.Point(105, 13);
-            this.txtHiddenList.Name = "txtHiddenList";
-            this.txtHiddenList.Size = new System.Drawing.Size(150, 22);
-            this.txtHiddenList.TabIndex = 1;
-            this.txtHiddenList.Text = "2, 4, 6, 8";
+            this.bgwTrain.WorkerReportsProgress = true;
+            this.bgwTrain.WorkerSupportsCancellation = true;
             // 
-            // lblEpochList
+            // bgwTuning
             // 
-            this.lblEpochList.AutoSize = true;
-            this.lblEpochList.Location = new System.Drawing.Point(275, 16);
-            this.lblEpochList.Name = "lblEpochList";
-            this.lblEpochList.Size = new System.Drawing.Size(91, 16);
-            this.lblEpochList.TabIndex = 3;
-            this.lblEpochList.Text = "Epoch counts:";
-            // 
-            // lblRepeats
-            // 
-            this.lblRepeats.AutoSize = true;
-            this.lblRepeats.Location = new System.Drawing.Point(580, 16);
-            this.lblRepeats.Name = "lblRepeats";
-            this.lblRepeats.Size = new System.Drawing.Size(103, 16);
-            this.lblRepeats.TabIndex = 4;
-            this.lblRepeats.Text = "Runs per config:";
-            // 
-            // lblTuningNote
-            // 
-            this.lblTuningNote.AutoSize = true;
-            this.lblTuningNote.ForeColor = System.Drawing.Color.DimGray;
-            this.lblTuningNote.Location = new System.Drawing.Point(175, 54);
-            this.lblTuningNote.Name = "lblTuningNote";
-            this.lblTuningNote.Size = new System.Drawing.Size(512, 16);
-            this.lblTuningNote.TabIndex = 5;
-            this.lblTuningNote.Text = "Each configuration is trained several times and averaged. The best row is highlig" +
-    "hted.";
-            // 
-            // lblHiddenList
-            // 
-            this.lblHiddenList.AutoSize = true;
-            this.lblHiddenList.Location = new System.Drawing.Point(12, 16);
-            this.lblHiddenList.Name = "lblHiddenList";
-            this.lblHiddenList.Size = new System.Drawing.Size(88, 16);
-            this.lblHiddenList.TabIndex = 6;
-            this.lblHiddenList.Text = "Hidden sizes:";
-            // 
-            // txtEpochList
-            // 
-            this.txtEpochList.Location = new System.Drawing.Point(370, 13);
-            this.txtEpochList.Name = "txtEpochList";
-            this.txtEpochList.Size = new System.Drawing.Size(190, 22);
-            this.txtEpochList.TabIndex = 7;
-            this.txtEpochList.Text = "10, 50, 100, 500, 1000, 2000";
-            // 
-            // btnRunTuning
-            // 
-            this.btnRunTuning.Location = new System.Drawing.Point(12, 46);
-            this.btnRunTuning.Name = "btnRunTuning";
-            this.btnRunTuning.Size = new System.Drawing.Size(150, 32);
-            this.btnRunTuning.TabIndex = 8;
-            this.btnRunTuning.Text = "Run grid search";
-            this.btnRunTuning.UseVisualStyleBackColor = true;
-            // 
-            // numRepeats
-            // 
-            this.numRepeats.Location = new System.Drawing.Point(690, 13);
-            this.numRepeats.Maximum = new decimal(new int[] {
-            20,
-            0,
-            0,
-            0});
-            this.numRepeats.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.numRepeats.Name = "numRepeats";
-            this.numRepeats.Size = new System.Drawing.Size(60, 22);
-            this.numRepeats.TabIndex = 9;
-            this.numRepeats.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            // 
-            // dgvTuning
-            // 
-            this.dgvTuning.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.dgvTuning.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvTuning.Location = new System.Drawing.Point(12, 90);
-            this.dgvTuning.Name = "dgvTuning";
-            this.dgvTuning.RowHeadersWidth = 51;
-            this.dgvTuning.RowTemplate.Height = 24;
-            this.dgvTuning.Size = new System.Drawing.Size(805, 565);
-            this.dgvTuning.TabIndex = 11;
+            this.bgwTuning.WorkerReportsProgress = true;
+            this.bgwTuning.WorkerSupportsCancellation = true;
             // 
             // Form1
             // 
@@ -1069,13 +1081,15 @@
             ((System.ComponentModel.ISupportInitialize)(this.picLoss)).EndInit();
             this.tabEval.ResumeLayout(false);
             this.tabEval.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvMetrics)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvConfusion)).EndInit();
             this.tabData.ResumeLayout(false);
             this.tabData.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvData)).EndInit();
             this.tabTuning.ResumeLayout(false);
             this.tabTuning.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvTuning)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numRepeats)).EndInit();
             this.grpData.ResumeLayout(false);
             this.grpData.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numSeed)).EndInit();
@@ -1094,8 +1108,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numDiastolic)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numSystolic)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numAge)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numRepeats)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.dgvTuning)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1145,10 +1157,10 @@
         private System.Windows.Forms.GroupBox grpEvaluate;
         private System.Windows.Forms.Button btnExport;
         private System.Windows.Forms.Button btnEvaluate;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView dgvConfusion;
         private System.Windows.Forms.Label lblConfusionTitle;
         private System.Windows.Forms.Label lblAccuracy;
-        private System.Windows.Forms.DataGridView dataGridView2;
+        private System.Windows.Forms.DataGridView dgvMetrics;
         private System.Windows.Forms.Label lblMetricsTitle;
         private System.Windows.Forms.PictureBox picLoss;
         private System.Windows.Forms.GroupBox grpPredict;
@@ -1175,6 +1187,8 @@
         private System.Windows.Forms.Label lblEpochList;
         private System.Windows.Forms.TextBox txtHiddenList;
         private System.Windows.Forms.DataGridView dgvTuning;
+        private System.ComponentModel.BackgroundWorker bgwTrain;
+        private System.ComponentModel.BackgroundWorker bgwTuning;
     }
 }
 
