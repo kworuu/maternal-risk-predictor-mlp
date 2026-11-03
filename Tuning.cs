@@ -4,11 +4,11 @@ using System.Globalization;
 
 namespace MaternalRiskPredictor
 {
-    /// <summary>
-    /// Scores of one setting (hidden nodes x epochs) over several repeated runs (L6).
-    /// Every run starts from new random weights and a new shuffle order, so the scores
-    /// differ a little from run to run; the mean and standard deviation summarise that.
-    /// </summary>
+
+    // Scores of one setting (hidden nodes x epochs) over several repeated runs (L6).
+    // Every run starts from new random weights and a new shuffle order, so the scores
+    // differ a little from run to run; the mean and standard deviation summarise that.
+
     public class TuningResult
     {
         public int Hidden;
@@ -21,7 +21,7 @@ namespace MaternalRiskPredictor
         public int Runs { get { return TestAccuracy.Count; } }
     }
 
-    /// <summary>Settings for one grid search, read on the UI thread before it starts.</summary>
+
     public class TuningJob
     {
         public List<int> HiddenList;
@@ -32,10 +32,7 @@ namespace MaternalRiskPredictor
 
     public static class Tuning
     {
-        /// <summary>
-        /// Parses "2, 4, 6, 8" into a sorted list without duplicates.
-        /// Returns false and an error message if a value is not a whole number in [min, max].
-        /// </summary>
+        // Turns "2, 4, 6, 8" into a sorted list without duplicates.
         public static bool TryParseList(string text, int min, int max, out List<int> values, out string error)
         {
             values = new List<int>();
@@ -68,7 +65,7 @@ namespace MaternalRiskPredictor
             return sum / xs.Count;
         }
 
-        /// <summary>Sample standard deviation (divides by n - 1). 0 when there are fewer than 2 runs.</summary>
+        // Sample standard deviation (divides by n - 1); 0 with fewer than 2 runs.
         public static double Std(List<double> xs)
         {
             if (xs.Count < 2) return 0;
