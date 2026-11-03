@@ -55,6 +55,18 @@
             this.rdoCleaned = new System.Windows.Forms.RadioButton();
             this.rdoScaled = new System.Windows.Forms.RadioButton();
             this.lblDataLegend = new System.Windows.Forms.Label();
+            this.grpNetwork = new System.Windows.Forms.GroupBox();
+            this.lblArch = new System.Windows.Forms.Label();
+            this.lblHidden = new System.Windows.Forms.Label();
+            this.numEpochs = new System.Windows.Forms.NumericUpDown();
+            this.lblEpochs = new System.Windows.Forms.Label();
+            this.numHidden = new System.Windows.Forms.NumericUpDown();
+            this.lblLogEvery = new System.Windows.Forms.Label();
+            this.numLogEvery = new System.Windows.Forms.NumericUpDown();
+            this.lblLearnRate = new System.Windows.Forms.Label();
+            this.btnCreate = new System.Windows.Forms.Button();
+            this.btnTrain = new System.Windows.Forms.Button();
+            this.btnStop = new System.Windows.Forms.Button();
             this.statusStrip.SuspendLayout();
             this.tabMain.SuspendLayout();
             this.tabLog.SuspendLayout();
@@ -63,6 +75,10 @@
             this.grpData.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numTrainPct)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numSeed)).BeginInit();
+            this.grpNetwork.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numEpochs)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numHidden)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numLogEvery)).BeginInit();
             this.SuspendLayout();
             // 
             // statusStrip
@@ -356,7 +372,6 @@
             this.rdoCleaned.Name = "rdoCleaned";
             this.rdoCleaned.Size = new System.Drawing.Size(79, 20);
             this.rdoCleaned.TabIndex = 2;
-            this.rdoCleaned.TabStop = true;
             this.rdoCleaned.Text = "Cleaned";
             this.rdoCleaned.UseVisualStyleBackColor = true;
             // 
@@ -368,7 +383,6 @@
             this.rdoScaled.Name = "rdoScaled";
             this.rdoScaled.Size = new System.Drawing.Size(102, 20);
             this.rdoScaled.TabIndex = 3;
-            this.rdoScaled.TabStop = true;
             this.rdoScaled.Text = "Scaled [0, 1]";
             this.rdoScaled.UseVisualStyleBackColor = true;
             // 
@@ -382,11 +396,172 @@
             this.lblDataLegend.TabIndex = 4;
             this.lblDataLegend.Text = "Grey = duplicate row    Red = impossible value";
             // 
+            // grpNetwork
+            // 
+            this.grpNetwork.Controls.Add(this.btnStop);
+            this.grpNetwork.Controls.Add(this.btnTrain);
+            this.grpNetwork.Controls.Add(this.btnCreate);
+            this.grpNetwork.Controls.Add(this.lblLearnRate);
+            this.grpNetwork.Controls.Add(this.numLogEvery);
+            this.grpNetwork.Controls.Add(this.lblLogEvery);
+            this.grpNetwork.Controls.Add(this.numHidden);
+            this.grpNetwork.Controls.Add(this.lblEpochs);
+            this.grpNetwork.Controls.Add(this.numEpochs);
+            this.grpNetwork.Controls.Add(this.lblHidden);
+            this.grpNetwork.Controls.Add(this.lblArch);
+            this.grpNetwork.Location = new System.Drawing.Point(12, 236);
+            this.grpNetwork.Name = "grpNetwork";
+            this.grpNetwork.Size = new System.Drawing.Size(330, 206);
+            this.grpNetwork.TabIndex = 3;
+            this.grpNetwork.TabStop = false;
+            this.grpNetwork.Text = "2. Network and training";
+            // 
+            // lblArch
+            // 
+            this.lblArch.AutoSize = true;
+            this.lblArch.Location = new System.Drawing.Point(12, 22);
+            this.lblArch.Name = "lblArch";
+            this.lblArch.Size = new System.Drawing.Size(238, 16);
+            this.lblArch.TabIndex = 0;
+            this.lblArch.Text = "\tInputs: 6 Outputs: 3 (low / mid / high risk)\t";
+            // 
+            // lblHidden
+            // 
+            this.lblHidden.AutoSize = true;
+            this.lblHidden.Location = new System.Drawing.Point(12, 50);
+            this.lblHidden.Name = "lblHidden";
+            this.lblHidden.Size = new System.Drawing.Size(95, 16);
+            this.lblHidden.TabIndex = 1;
+            this.lblHidden.Text = "Hidden nodes:";
+            // 
+            // numEpochs
+            // 
+            this.numEpochs.Increment = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            this.numEpochs.Location = new System.Drawing.Point(200, 75);
+            this.numEpochs.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.numEpochs.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numEpochs.Name = "numEpochs";
+            this.numEpochs.Size = new System.Drawing.Size(120, 22);
+            this.numEpochs.TabIndex = 2;
+            this.numEpochs.Value = new decimal(new int[] {
+            2000,
+            0,
+            0,
+            0});
+            // 
+            // lblEpochs
+            // 
+            this.lblEpochs.AutoSize = true;
+            this.lblEpochs.Location = new System.Drawing.Point(12, 78);
+            this.lblEpochs.Name = "lblEpochs";
+            this.lblEpochs.Size = new System.Drawing.Size(143, 16);
+            this.lblEpochs.TabIndex = 3;
+            this.lblEpochs.Text = "Epochs per Train click:";
+            // 
+            // numHidden
+            // 
+            this.numHidden.Location = new System.Drawing.Point(200, 47);
+            this.numHidden.Maximum = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+            this.numHidden.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numHidden.Name = "numHidden";
+            this.numHidden.Size = new System.Drawing.Size(118, 22);
+            this.numHidden.TabIndex = 4;
+            this.numHidden.Value = new decimal(new int[] {
+            6,
+            0,
+            0,
+            0});
+            // 
+            // lblLogEvery
+            // 
+            this.lblLogEvery.AutoSize = true;
+            this.lblLogEvery.Location = new System.Drawing.Point(12, 106);
+            this.lblLogEvery.Name = "lblLogEvery";
+            this.lblLogEvery.Size = new System.Drawing.Size(131, 16);
+            this.lblLogEvery.TabIndex = 5;
+            this.lblLogEvery.Text = "Log every N epochs:";
+            // 
+            // numLogEvery
+            // 
+            this.numLogEvery.Location = new System.Drawing.Point(200, 104);
+            this.numLogEvery.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.numLogEvery.Name = "numLogEvery";
+            this.numLogEvery.Size = new System.Drawing.Size(120, 22);
+            this.numLogEvery.TabIndex = 6;
+            this.numLogEvery.Value = new decimal(new int[] {
+            200,
+            0,
+            0,
+            0});
+            // 
+            // lblLearnRate
+            // 
+            this.lblLearnRate.AutoSize = true;
+            this.lblLearnRate.ForeColor = System.Drawing.Color.DimGray;
+            this.lblLearnRate.Location = new System.Drawing.Point(12, 132);
+            this.lblLearnRate.Name = "lblLearnRate";
+            this.lblLearnRate.Size = new System.Drawing.Size(272, 16);
+            this.lblLearnRate.TabIndex = 7;
+            this.lblLearnRate.Text = "Learning rate: fixed in engine (0.2 out / 0.15 in)";
+            // 
+            // btnCreate
+            // 
+            this.btnCreate.Location = new System.Drawing.Point(12, 160);
+            this.btnCreate.Name = "btnCreate";
+            this.btnCreate.Size = new System.Drawing.Size(96, 32);
+            this.btnCreate.TabIndex = 8;
+            this.btnCreate.Text = "Create NN";
+            this.btnCreate.UseVisualStyleBackColor = true;
+            // 
+            // btnTrain
+            // 
+            this.btnTrain.Location = new System.Drawing.Point(117, 160);
+            this.btnTrain.Name = "btnTrain";
+            this.btnTrain.Size = new System.Drawing.Size(96, 32);
+            this.btnTrain.TabIndex = 9;
+            this.btnTrain.Text = "Train NN";
+            this.btnTrain.UseVisualStyleBackColor = true;
+            // 
+            // btnStop
+            // 
+            this.btnStop.Enabled = false;
+            this.btnStop.Location = new System.Drawing.Point(222, 160);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(96, 32);
+            this.btnStop.TabIndex = 10;
+            this.btnStop.Text = "Stop";
+            this.btnStop.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1114, 692);
+            this.Controls.Add(this.grpNetwork);
             this.Controls.Add(this.grpData);
             this.Controls.Add(this.tabMain);
             this.Controls.Add(this.statusStrip);
@@ -406,6 +581,11 @@
             this.grpData.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numTrainPct)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numSeed)).EndInit();
+            this.grpNetwork.ResumeLayout(false);
+            this.grpNetwork.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numEpochs)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numHidden)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numLogEvery)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -440,6 +620,18 @@
         private System.Windows.Forms.RadioButton rdoCleaned;
         private System.Windows.Forms.RadioButton rdoRaw;
         private System.Windows.Forms.Label lblDataLegend;
+        private System.Windows.Forms.GroupBox grpNetwork;
+        private System.Windows.Forms.Label lblLogEvery;
+        private System.Windows.Forms.NumericUpDown numHidden;
+        private System.Windows.Forms.Label lblEpochs;
+        private System.Windows.Forms.NumericUpDown numEpochs;
+        private System.Windows.Forms.Label lblHidden;
+        private System.Windows.Forms.Label lblArch;
+        private System.Windows.Forms.Button btnStop;
+        private System.Windows.Forms.Button btnTrain;
+        private System.Windows.Forms.Button btnCreate;
+        private System.Windows.Forms.Label lblLearnRate;
+        private System.Windows.Forms.NumericUpDown numLogEvery;
     }
 }
 
