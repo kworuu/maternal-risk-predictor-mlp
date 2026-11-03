@@ -65,6 +65,7 @@
     <Compile Include="HiddenN.cs" />
     <Compile Include="InputN.cs" />
     <Compile Include="MaternalData.cs" />
+    <Compile Include="NetworkTrainer.cs" />
     <Compile Include="OuputN.cs" />
     <Compile Include="Preprocessing.cs" />
     <Compile Include="Program.cs" />
