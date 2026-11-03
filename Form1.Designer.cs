@@ -51,6 +51,10 @@
             this.chkRemoveDuplicates = new System.Windows.Forms.CheckBox();
             this.chkRemoveImpossible = new System.Windows.Forms.CheckBox();
             this.btnPrepare = new System.Windows.Forms.Button();
+            this.rdoRaw = new System.Windows.Forms.RadioButton();
+            this.rdoCleaned = new System.Windows.Forms.RadioButton();
+            this.rdoScaled = new System.Windows.Forms.RadioButton();
+            this.lblDataLegend = new System.Windows.Forms.Label();
             this.statusStrip.SuspendLayout();
             this.tabMain.SuspendLayout();
             this.tabLog.SuspendLayout();
@@ -149,6 +153,10 @@
             // 
             // tabData
             // 
+            this.tabData.Controls.Add(this.lblDataLegend);
+            this.tabData.Controls.Add(this.rdoScaled);
+            this.tabData.Controls.Add(this.rdoCleaned);
+            this.tabData.Controls.Add(this.rdoRaw);
             this.tabData.Controls.Add(this.dgvData);
             this.tabData.Location = new System.Drawing.Point(4, 25);
             this.tabData.Name = "tabData";
@@ -160,9 +168,6 @@
             // 
             // dgvData
             // 
-            this.dgvData.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.dgvData.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgvData.Location = new System.Drawing.Point(3, 32);
             this.dgvData.Name = "dgvData";
@@ -331,6 +336,52 @@
             this.btnPrepare.Text = "Clean + Split + Normalize (Min-Max to [0, 1])";
             this.btnPrepare.UseVisualStyleBackColor = true;
             // 
+            // rdoRaw
+            // 
+            this.rdoRaw.AutoSize = true;
+            this.rdoRaw.Checked = true;
+            this.rdoRaw.Location = new System.Drawing.Point(8, 8);
+            this.rdoRaw.Name = "rdoRaw";
+            this.rdoRaw.Size = new System.Drawing.Size(55, 20);
+            this.rdoRaw.TabIndex = 1;
+            this.rdoRaw.TabStop = true;
+            this.rdoRaw.Text = "Raw";
+            this.rdoRaw.UseVisualStyleBackColor = true;
+            // 
+            // rdoCleaned
+            // 
+            this.rdoCleaned.AutoSize = true;
+            this.rdoCleaned.Enabled = false;
+            this.rdoCleaned.Location = new System.Drawing.Point(70, 8);
+            this.rdoCleaned.Name = "rdoCleaned";
+            this.rdoCleaned.Size = new System.Drawing.Size(79, 20);
+            this.rdoCleaned.TabIndex = 2;
+            this.rdoCleaned.TabStop = true;
+            this.rdoCleaned.Text = "Cleaned";
+            this.rdoCleaned.UseVisualStyleBackColor = true;
+            // 
+            // rdoScaled
+            // 
+            this.rdoScaled.AutoSize = true;
+            this.rdoScaled.Enabled = false;
+            this.rdoScaled.Location = new System.Drawing.Point(160, 8);
+            this.rdoScaled.Name = "rdoScaled";
+            this.rdoScaled.Size = new System.Drawing.Size(102, 20);
+            this.rdoScaled.TabIndex = 3;
+            this.rdoScaled.TabStop = true;
+            this.rdoScaled.Text = "Scaled [0, 1]";
+            this.rdoScaled.UseVisualStyleBackColor = true;
+            // 
+            // lblDataLegend
+            // 
+            this.lblDataLegend.AutoSize = true;
+            this.lblDataLegend.ForeColor = System.Drawing.Color.DimGray;
+            this.lblDataLegend.Location = new System.Drawing.Point(288, 8);
+            this.lblDataLegend.Name = "lblDataLegend";
+            this.lblDataLegend.Size = new System.Drawing.Size(281, 16);
+            this.lblDataLegend.TabIndex = 4;
+            this.lblDataLegend.Text = "Grey = duplicate row    Red = impossible value";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -349,6 +400,7 @@
             this.tabLog.ResumeLayout(false);
             this.tabLog.PerformLayout();
             this.tabData.ResumeLayout(false);
+            this.tabData.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvData)).EndInit();
             this.grpData.ResumeLayout(false);
             this.grpData.PerformLayout();
@@ -384,6 +436,10 @@
         private System.Windows.Forms.CheckBox chkRemoveImpossible;
         private System.Windows.Forms.CheckBox chkRemoveDuplicates;
         private System.Windows.Forms.CheckBox chkStratified;
+        private System.Windows.Forms.RadioButton rdoScaled;
+        private System.Windows.Forms.RadioButton rdoCleaned;
+        private System.Windows.Forms.RadioButton rdoRaw;
+        private System.Windows.Forms.Label lblDataLegend;
     }
 }
 
