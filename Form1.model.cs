@@ -42,7 +42,10 @@ namespace MaternalRiskPredictor
             SetupLossChart();
             btnExport.Click += new EventHandler(btnExport_Click);
 
-            // L4: btnEvaluate
+            // L4: evaluation on the test set
+            btnEvaluate.Click += new EventHandler(btnEvaluate_Click);
+            ClearEvaluation();
+
             // L5: btnPredict
             // L6: btnRunTuning, bgwTuning events
         }
@@ -58,6 +61,7 @@ namespace MaternalRiskPredictor
                 trainer = null;
                 trainingHistory.Clear();
                 RefreshLossChart();
+                ClearEvaluation();
                 Log("Data changed: the old network was discarded. Click Create NN again.");
             }
         }
@@ -82,6 +86,7 @@ namespace MaternalRiskPredictor
             TrainingRecord start = MakeRecord();
             trainingHistory.Add(start);
             RefreshLossChart();
+            ClearEvaluation();
 
             Log(string.Format("Created a {0}-{1}-{2} network with random weights.",
                 MaternalData.NumFeatures, hidden, MaternalData.NumClasses));
@@ -340,6 +345,143 @@ namespace MaternalRiskPredictor
                 Log("");
                 SetStatus("Training log exported.");
             }
+        }
+
+        // =====================================================================
+        // L4: Evaluation (confusion matrix, per-class metrics, baseline)
+        // =====================================================================
+
+        private static readonly Color CorrectCell = Color.FromArgb(214, 240, 214);  // diagonal: right answers
+        private static readonly Color WrongCell = Color.FromArgb(250, 215, 215);    // off-diagonal, non-zero: mistakes
+        private static readonly Color TotalCell = Color.FromArgb(240, 240, 240);
+
+        private void btnEvaluate_Click(object sender, EventArgs e)
+        {
+            if (trainer == null)
+            {
+                Warn("Create and train the network first.");
+                return;
+            }
+            if (trainer.EpochsTrained == 0)
+                Log("Note: the network is untrained, so these scores are close to random guessing.");
+
+            ConfusionMatrix cm = ConfusionMatrix.Build(trainer, testSet);
+            double trainAcc = trainer.ComputeAccuracy(trainSet);
+            int majority;
+            double baseline = Metrics.MajorityBaseline(trainSet, testSet, out majority);
+
+            ShowConfusion(cm);
+            ShowMetrics(cm);
+
+            lblAccuracy.Text = string.Format(
+                "Test accuracy: {0:P1} ({1} of {2} correct)   |   Baseline (always \"{3}\"): {4:P1}   |   Train accuracy: {5:P1}",
+                cm.Accuracy(), cm.Correct(), cm.Total, MaternalData.ClassNames[majority], baseline, trainAcc);
+
+            LogEvaluation(cm, trainAcc, baseline, majority);
+            tabMain.SelectedTab = tabEval;
+            SetStatus(string.Format("Evaluated after {0} epochs: test accuracy {1:P1}, macro F1 {2:F3}.",
+                trainer.EpochsTrained, cm.Accuracy(), cm.MacroF1()));
+        }
+
+        /// <summary>Rows = actual class, columns = predicted class, plus totals.</summary>
+        private void ShowConfusion(ConfusionMatrix cm)
+        {
+            int n = cm.NumClasses;
+            dgvConfusion.Columns.Clear();
+            dgvConfusion.Rows.Clear();
+            AddColumn(dgvConfusion, "colActual", "Actual \\ Predicted");
+            for (int k = 0; k < n; k++)
+                AddColumn(dgvConfusion, "colPred" + k, MaternalData.ClassNames[k]);
+            AddColumn(dgvConfusion, "colTotal", "Total (actual)");
+
+            for (int i = 0; i < n; i++)
+            {
+                object[] cells = new object[n + 2];
+                cells[0] = MaternalData.ClassNames[i];
+                for (int j = 0; j < n; j++) cells[j + 1] = cm.Counts[i, j];
+                cells[n + 1] = cm.Support(i);
+                int r = dgvConfusion.Rows.Add(cells);
+
+                for (int j = 0; j < n; j++)
+                {
+                    DataGridViewCell c = dgvConfusion.Rows[r].Cells[j + 1];
+                    if (i == j) c.Style.BackColor = CorrectCell;
+                    else if (cm.Counts[i, j] > 0) c.Style.BackColor = WrongCell;
+                }
+                dgvConfusion.Rows[r].Cells[n + 1].Style.BackColor = TotalCell;
+            }
+
+            object[] totals = new object[n + 2];
+            totals[0] = "Total (predicted)";
+            for (int j = 0; j < n; j++) totals[j + 1] = cm.PredictedCount(j);
+            totals[n + 1] = cm.Total;
+            int t = dgvConfusion.Rows.Add(totals);
+            dgvConfusion.Rows[t].DefaultCellStyle.BackColor = TotalCell;
+            dgvConfusion.Rows[t].DefaultCellStyle.Font = new Font(dgvConfusion.Font, FontStyle.Bold);
+            dgvConfusion.ClearSelection();
+        }
+
+        /// <summary>Precision, recall, F1 and support per class, then the macro average.</summary>
+        private void ShowMetrics(ConfusionMatrix cm)
+        {
+            dgvMetrics.Columns.Clear();
+            dgvMetrics.Rows.Clear();
+            AddColumn(dgvMetrics, "colClass", "Class");
+            AddColumn(dgvMetrics, "colPrecision", "Precision");
+            AddColumn(dgvMetrics, "colRecall", "Recall");
+            AddColumn(dgvMetrics, "colF1", "F1");
+            AddColumn(dgvMetrics, "colSupport", "Support (test rows)");
+
+            for (int k = 0; k < cm.NumClasses; k++)
+            {
+                dgvMetrics.Rows.Add(MaternalData.ClassNames[k],
+                    cm.Precision(k).ToString("0.000"), cm.Recall(k).ToString("0.000"),
+                    cm.F1(k).ToString("0.000"), cm.Support(k));
+            }
+            int r = dgvMetrics.Rows.Add("Macro average",
+                cm.MacroPrecision().ToString("0.000"), cm.MacroRecall().ToString("0.000"),
+                cm.MacroF1().ToString("0.000"), cm.Total);
+            dgvMetrics.Rows[r].DefaultCellStyle.BackColor = TotalCell;
+            dgvMetrics.Rows[r].DefaultCellStyle.Font = new Font(dgvMetrics.Font, FontStyle.Bold);
+            dgvMetrics.ClearSelection();
+        }
+
+        /// <summary>The same results as text, so they are also in the log (and in screenshots of it).</summary>
+        private void LogEvaluation(ConfusionMatrix cm, double trainAcc, double baseline, int majority)
+        {
+            Log(string.Format("Evaluation on the TEST set ({0} rows) after {1} epochs:", cm.Total, trainer.EpochsTrained));
+            Log(string.Format("  Test accuracy {0:P1} ({1}/{2}) | train accuracy {3:P1} | baseline (always {4}) {5:P1}",
+                cm.Accuracy(), cm.Correct(), cm.Total, trainAcc, MaternalData.ClassNames[majority], baseline));
+            Log("  Confusion matrix (rows = actual, columns = predicted: Low, Mid, High):");
+            for (int i = 0; i < cm.NumClasses; i++)
+            {
+                Log(string.Format("    {0,-9} {1,4} {2,4} {3,4}", MaternalData.ClassNames[i],
+                    cm.Counts[i, 0], cm.Counts[i, 1], cm.Counts[i, 2]));
+            }
+            for (int k = 0; k < cm.NumClasses; k++)
+            {
+                Log(string.Format("  {0,-9} precision {1:F3}  recall {2:F3}  F1 {3:F3}  (support {4})",
+                    MaternalData.ClassNames[k], cm.Precision(k), cm.Recall(k), cm.F1(k), cm.Support(k)));
+            }
+            Log(string.Format("  Macro     precision {0:F3}  recall {1:F3}  F1 {2:F3}",
+                cm.MacroPrecision(), cm.MacroRecall(), cm.MacroF1()));
+            Log("");
+        }
+
+        /// <summary>Empties the Evaluation tab (new network or new data = old results no longer valid).</summary>
+        private void ClearEvaluation()
+        {
+            dgvConfusion.Columns.Clear();
+            dgvConfusion.Rows.Clear();
+            dgvMetrics.Columns.Clear();
+            dgvMetrics.Rows.Clear();
+            lblAccuracy.Text = "Train the network, then click Evaluate.";
+        }
+
+        private static void AddColumn(DataGridView grid, string name, string header)
+        {
+            int i = grid.Columns.Add(name, header);
+            grid.Columns[i].SortMode = DataGridViewColumnSortMode.NotSortable;
         }
 
         // ---- helpers ----
