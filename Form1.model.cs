@@ -50,7 +50,11 @@ namespace MaternalRiskPredictor
             btnPredict.Click += new EventHandler(btnPredict_Click);
             ClearPrediction();
 
-            // L6: btnRunTuning, bgwTuning events
+            // L6: tuning grid search (its own background worker; Stop cancels it too)
+            btnRunTuning.Click += new EventHandler(btnRunTuning_Click);
+            bgwTuning.DoWork += new DoWorkEventHandler(bgwTuning_DoWork);
+            bgwTuning.ProgressChanged += new ProgressChangedEventHandler(bgwTuning_ProgressChanged);
+            bgwTuning.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgwTuning_RunWorkerCompleted);
         }
 
         /// <summary>
@@ -145,6 +149,12 @@ namespace MaternalRiskPredictor
                 btnStop.Enabled = false;
                 SetStatus("Stopping after the current epoch...");
             }
+            if (bgwTuning.IsBusy)
+            {
+                bgwTuning.CancelAsync();
+                btnStop.Enabled = false;
+                SetStatus("Stopping the tuning run...");
+            }
         }
 
         /// <summary>BACKGROUND THREAD. Runs the epochs. No UI calls here, only ReportProgress.</summary>
@@ -231,6 +241,7 @@ namespace MaternalRiskPredictor
         private void Form1_FormClosingModel(object sender, FormClosingEventArgs e)
         {
             if (bgwTrain.IsBusy) bgwTrain.CancelAsync();
+            if (bgwTuning.IsBusy) bgwTuning.CancelAsync();
         }
 
         // =====================================================================
@@ -561,8 +572,215 @@ namespace MaternalRiskPredictor
 
         private void ClearPrediction()
         {
-            lblPrediction.Text = "Enter the vitals and click Predict.";
+            lblPrediction.Text = "Enter the vitals and click Run NN.";
             lblPrediction.ForeColor = SystemColors.ControlText;
+        }
+
+        // =====================================================================
+        // L6: Tuning (grid search over hidden nodes x epochs, repeated runs)
+        // =====================================================================
+
+        // Filled by the background thread, read by the UI thread only after it finishes.
+        private List<TuningResult> tuningResults = new List<TuningResult>();
+
+        private void btnRunTuning_Click(object sender, EventArgs e)
+        {
+            if (trainSet == null)
+            {
+                Warn("Load the CSV and click \"Clean + Split + Normalize\" first.");
+                return;
+            }
+            if (bgwTuning.IsBusy || bgwTrain.IsBusy) return;
+
+            List<int> hiddenList, epochList;
+            string error;
+            if (!Tuning.TryParseList(txtHiddenList.Text, 1, 100, out hiddenList, out error))
+            {
+                Warn("Hidden nodes list: " + error);
+                return;
+            }
+            if (!Tuning.TryParseList(txtEpochList.Text, 1, 100000, out epochList, out error))
+            {
+                Warn("Epochs list: " + error);
+                return;
+            }
+
+            TuningJob job = new TuningJob();
+            job.HiddenList = hiddenList;
+            job.EpochList = epochList;
+            job.Repeats = (int)numRepeats.Value;
+            job.Seed = (int)numSeed.Value;
+
+            int maxEpochs = epochList[epochList.Count - 1];
+            long totalEpochs = (long)hiddenList.Count * job.Repeats * maxEpochs;
+            Log(string.Format("Tuning: hidden {{{0}}} x epochs {{{1}}}, {2} runs each.",
+                string.Join(", ", hiddenList), string.Join(", ", epochList), job.Repeats));
+            Log(string.Format("  Each run trains a NEW network to {0} epochs and is measured at every listed epoch,", maxEpochs));
+            Log(string.Format("  so this is {0} runs and {1:N0} epochs in total. The split stays the same (seed {2}).",
+                hiddenList.Count * job.Repeats, totalEpochs, job.Seed));
+            Log("  The network on the Training tab is not changed.");
+
+            tuningResults = new List<TuningResult>();
+            dgvTuning.Columns.Clear();
+            dgvTuning.Rows.Clear();
+            lblTuningNote.Text = "Tuning is running...";
+
+            SetBusy(true);
+            tabMain.SelectedTab = tabTuning;
+            SetStatus("Tuning...");
+            bgwTuning.RunWorkerAsync(job);
+        }
+
+        /// <summary>BACKGROUND THREAD. Trains every (hidden, repeat) network and scores it at each listed epoch.</summary>
+        private void bgwTuning_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = (BackgroundWorker)sender;
+            TuningJob job = (TuningJob)e.Argument;
+            int maxEpochs = job.EpochList[job.EpochList.Count - 1];
+            long total = (long)job.HiddenList.Count * job.Repeats * maxEpochs, done = 0;
+            int lastPercent = -1;
+
+            // One result object per (hidden, epochs) cell of the grid.
+            Dictionary<string, TuningResult> cell = new Dictionary<string, TuningResult>();
+            foreach (int h in job.HiddenList)
+                foreach (int ep in job.EpochList)
+                {
+                    TuningResult r = new TuningResult();
+                    r.Hidden = h;
+                    r.Epochs = ep;
+                    tuningResults.Add(r);
+                    cell[h + "x" + ep] = r;
+                }
+
+            foreach (int h in job.HiddenList)
+            {
+                for (int run = 0; run < job.Repeats; run++)
+                {
+                    // New random weights every run (the engine's own Random) + a different shuffle order.
+                    NetworkTrainer t = new NetworkTrainer(h, job.Seed * 1000 + run);
+
+                    for (int ep = 1; ep <= maxEpochs; ep++)
+                    {
+                        if (worker.CancellationPending)
+                        {
+                            e.Cancel = true;
+                            return;
+                        }
+                        t.TrainOneEpoch(trainSet);
+                        done++;
+
+                        TuningResult r;
+                        if (cell.TryGetValue(h + "x" + ep, out r))
+                        {
+                            r.TestAccuracy.Add(t.ComputeAccuracy(testSet));
+                            r.TrainAccuracy.Add(t.ComputeAccuracy(trainSet));
+                            r.TestMse.Add(t.ComputeMse(testSet));
+                            r.MacroF1.Add(ConfusionMatrix.Build(t, testSet).MacroF1());
+                        }
+
+                        int percent = (int)(100L * done / total);
+                        if (percent != lastPercent)
+                        {
+                            lastPercent = percent;
+                            worker.ReportProgress(percent, string.Format(
+                                "Tuning... {0} hidden, run {1}/{2}, epoch {3}", h, run + 1, job.Repeats, ep));
+                        }
+                    }
+                }
+            }
+        }
+
+        private void bgwTuning_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar.Value = Math.Min(Math.Max(e.ProgressPercentage, 0), 100);
+            string msg = e.UserState as string;
+            if (msg != null) SetStatus(msg);
+        }
+
+        private void bgwTuning_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            SetBusy(false);
+            if (e.Error != null)
+            {
+                Log("Tuning failed: " + e.Error.Message);
+                Warn("Tuning failed: " + e.Error.Message);
+                SetStatus("Tuning failed.");
+                return;
+            }
+
+            // After a Stop, keep only the settings that finished at least one run.
+            List<TuningResult> rows = tuningResults.FindAll(r => r.Runs > 0);
+            if (rows.Count == 0)
+            {
+                lblTuningNote.Text = "Tuning was stopped before any run finished.";
+                Log("Tuning stopped before any run finished.");
+                Log("");
+                SetStatus("Tuning stopped.");
+                return;
+            }
+
+            TuningResult best = ShowTuningResults(rows);
+            LogTuningResults(rows, best, e.Cancelled);
+
+            lblTuningNote.Text = string.Format(
+                "Best: {0} hidden nodes, {1} epochs -> test accuracy {2:P1} \u00B1 {3:P1} over {4} runs (green row).{5}",
+                best.Hidden, best.Epochs, Tuning.Mean(best.TestAccuracy), Tuning.Std(best.TestAccuracy), best.Runs,
+                e.Cancelled ? "  Stopped early: some settings have fewer runs." : "");
+            SetStatus(e.Cancelled ? "Tuning stopped; partial results shown." : "Tuning finished.");
+        }
+
+        /// <summary>Fills dgvTuning and highlights the best row. Returns the best setting.</summary>
+        private TuningResult ShowTuningResults(List<TuningResult> rows)
+        {
+            dgvTuning.Columns.Clear();
+            dgvTuning.Rows.Clear();
+            AddColumn(dgvTuning, "colHidden", "Hidden nodes");
+            AddColumn(dgvTuning, "colEpochs", "Epochs");
+            AddColumn(dgvTuning, "colRuns", "Runs");
+            AddColumn(dgvTuning, "colTestAcc", "Test acc (mean)");
+            AddColumn(dgvTuning, "colTestStd", "\u00B1 std");
+            AddColumn(dgvTuning, "colTrainAcc", "Train acc (mean)");
+            AddColumn(dgvTuning, "colTestMse", "Test MSE (mean)");
+            AddColumn(dgvTuning, "colF1", "Macro F1 (mean)");
+
+            // Best = highest mean test accuracy; on a tie, the smaller (cheaper) network/epoch count.
+            TuningResult best = rows[0];
+            foreach (TuningResult r in rows)
+            {
+                double m = Tuning.Mean(r.TestAccuracy), b = Tuning.Mean(best.TestAccuracy);
+                if (m > b + 1e-12) best = r;
+            }
+
+            foreach (TuningResult r in rows)
+            {
+                int i = dgvTuning.Rows.Add(r.Hidden, r.Epochs, r.Runs,
+                    Tuning.Mean(r.TestAccuracy).ToString("P1"), Tuning.Std(r.TestAccuracy).ToString("P1"),
+                    Tuning.Mean(r.TrainAccuracy).ToString("P1"), Tuning.Mean(r.TestMse).ToString("0.0000"),
+                    Tuning.Mean(r.MacroF1).ToString("0.000"));
+                if (r == best)
+                {
+                    dgvTuning.Rows[i].DefaultCellStyle.BackColor = CorrectCell;
+                    dgvTuning.Rows[i].DefaultCellStyle.Font = new Font(dgvTuning.Font, FontStyle.Bold);
+                }
+            }
+            dgvTuning.ClearSelection();
+            return best;
+        }
+
+        private void LogTuningResults(List<TuningResult> rows, TuningResult best, bool stopped)
+        {
+            Log(stopped ? "Tuning stopped early. Partial results:" : "Tuning results (mean over runs, test set):");
+            Log("  Hidden | Epochs | Runs | Test acc \u00B1 std   | Train acc | Test MSE | Macro F1");
+            foreach (TuningResult r in rows)
+            {
+                Log(string.Format("  {0,6} | {1,6} | {2,4} | {3,6:P1} \u00B1 {4,5:P1} | {5,8:P1} | {6:0.0000}   | {7:0.000}{8}",
+                    r.Hidden, r.Epochs, r.Runs, Tuning.Mean(r.TestAccuracy), Tuning.Std(r.TestAccuracy),
+                    Tuning.Mean(r.TrainAccuracy), Tuning.Mean(r.TestMse), Tuning.Mean(r.MacroF1),
+                    r == best ? "  <- best" : ""));
+            }
+            Log(string.Format("  Best: {0} hidden nodes, {1} epochs.", best.Hidden, best.Epochs));
+            Log("  To use it: set Hidden nodes and Epochs on the left, then Create NN and Train NN.");
+            Log("");
         }
 
         // ---- helpers ----
